@@ -1,5 +1,8 @@
 #include <stdio.h>
+/* "<header name>" searches the system locations for headers first */
 #include <stdlib.h>
+/* "header name" searches the current directory for headers first */
+#include "mpc.h"
 
 #ifdef _WIN32
 #include <string.h>
