@@ -1,9 +1,8 @@
 #include <stdio.h>
-
-/* input buffer */
-/* global array of 2048 characters */
-/* static keyword makess this variable local to this file */
-static char input[2048];
+#include <stdlib.h>
+/* yaourt libedit */
+/* cc -std=c99 -Wall -ledit prompt.c -o prompt */
+#include <editline/readline.h>
 
 int main(int argc, char **argv) {
   puts("Lispy Version 0.0.0.0.1");
@@ -12,10 +11,12 @@ int main(int argc, char **argv) {
   /* not 0, infinit loop */
   while (1) {
     /* http://en.cppreference.com/ */
-    fputs("lispy> ", stdout);
-    fgets(input, 2048, stdin);
+    char *input = readline("lispy> ");
+    add_history(input);
 
-    printf("%s", input);
+    puts(input);
+    /* from stdlib.h */
+    free(input);
   }
 
   return 0;
