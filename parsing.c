@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   mpc_parser_t *Operator = mpc_new("operator");
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
-  mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+/ ; \
+  mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
              operator: '+' | '-' | '*' | '/' | '%' | /(add|sub|mul|div)/ ; \
              expr: <number> | '(' <operator> <expr>+ ')' ; \
              lispy: /^/ <operator> <expr>+ /$/ ; \
