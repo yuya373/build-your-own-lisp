@@ -24,6 +24,53 @@ void add_history(char *unused) {}
 #include <editline/readline.h>
 #endif
 
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+enum { LVAL_NUM, LVAL_ERR };
+
+typedef struct {
+  int type;
+  long num;
+  int err;
+} lval;
+
+lval lval_num(long n) {
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = n;
+  return v;
+}
+
+lval lval_err(int err) {
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = err;
+  return v;
+}
+
+void lval_print(lval v) {
+  switch (v.type) {
+  case LVAL_NUM:
+    printf("%li", v.num);
+    break;
+  case LVAL_ERR:
+    if (v.err == LERR_DIV_ZERO) {
+      printf("Error: Division By Zero!");
+    }
+    if (v.err == LERR_BAD_OP) {
+      printf("Error: Invalid Operator!");
+    }
+    if (v.err == LERR_BAD_NUM) {
+      printf("Error: Invalid Number!");
+    }
+    break;
+  }
+}
+
+void lval_println(lval v) {
+  lval_print(v);
+  putchar('\n');
+}
+
 void print_ast(mpc_ast_t *ast) {
   printf("Tag: %s\n", ast->tag);
   printf("Contents: %s\n", ast->contents);
@@ -81,7 +128,7 @@ long number_of_branches(mpc_ast_t *t) {
   return 0;
 }
 
-long eval_op(long acc, char *op, long n) {
+lval eval_op(lval acc, char *op, lval n) {
   if (strcmp(op, "add") == 0) {
     return eval_op(acc, (char *)"+", n);
   }
@@ -95,52 +142,54 @@ long eval_op(long acc, char *op, long n) {
     return eval_op(acc, (char *)"/", n);
   }
   if (strcmp(op, "+") == 0) {
-    return acc + n;
+    return lval_num(acc.num + n.num);
   }
   if (strcmp(op, "-") == 0) {
-    return acc - n;
+    return lval_num(acc.num - n.num);
   }
   if (strcmp(op, "*") == 0) {
-    return acc * n;
+    return lval_num(acc.num * n.num);
   }
   if (strcmp(op, "/") == 0) {
-    return acc / n;
+    return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num);
   }
   if (strcmp(op, "%") == 0) {
-    return acc % n;
+    return lval_num(acc.num % n.num);
   }
   if (strcmp(op, "^") == 0) {
-    long ret = acc;
-    for (int i = 1; i < n; i++) {
-      ret = ret * acc;
+    long ret = acc.num;
+    for (int i = 1; i < n.num; i++) {
+      ret = ret * acc.num;
     }
-    return ret;
+    return lval_num(ret);
   }
   if (strcmp(op, "min") == 0) {
-    if (acc < n) {
+    if (acc.num < n.num) {
       return acc;
     }
     return n;
   }
   if (strcmp(op, "max") == 0) {
-    if (acc < n) {
+    if (acc.num < n.num) {
       return n;
     }
     return acc;
   }
-  return 0;
+  return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t *t) {
+lval eval(mpc_ast_t *t) {
   if (strstr(t->tag, "number")) {
-    return atoi(t->contents);
+    errno = 0;
+    long x = strtol(t->contents, NULL, 10);
+    return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
   }
 
   char *op = t->children[1]->contents;
-  long x = eval(t->children[2]);
+  lval x = eval(t->children[2]);
 
   if (strcmp(op, "-") == 0 && !strstr(t->children[3]->tag, "expr")) {
-    return eval_op(0, (char *)"-", x);
+    return eval_op(lval_num(0), (char *)"-", x);
   }
 
   int i = 3;
@@ -178,7 +227,9 @@ int main(int argc, char **argv) {
       /* printf("Number of nodes: %i\n", number_of_nodes(ast)); */
       /* printf("Number of leaves: %li\n", number_of_leaves(ast)); */
       /* printf("Number of branches: %li\n", number_of_branches(ast)); */
-      printf("%li\n", eval(ast));
+      /* printf("%li\n", eval(ast)); */
+      lval result = eval(ast);
+      lval_println(result);
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
       mpc_err_print(r.error);
