@@ -39,6 +39,20 @@ void print_ast(mpc_ast_t *ast) {
   }
 }
 
+int number_of_nodes(mpc_ast_t *ast) {
+  if (ast->children_num == 0) {
+    return 1;
+  }
+  if (ast->children_num >= 1) {
+    int total = 1;
+    for (int i = 0; i < ast->children_num; i++) {
+      total = total + number_of_nodes(ast->children[i]);
+    }
+    return total;
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) {
   mpc_parser_t *Number = mpc_new("number");
   mpc_parser_t *Operator = mpc_new("operator");
@@ -62,6 +76,7 @@ int main(int argc, char **argv) {
       /* mpc_ast_print((mpc_ast_t *)r.output); */
       mpc_ast_t *ast = (mpc_ast_t *)r.output;
       print_ast(ast);
+      printf("Number of nodes: %i\n", number_of_nodes(ast));
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
       mpc_err_print(r.error);
