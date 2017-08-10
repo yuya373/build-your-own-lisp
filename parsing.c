@@ -54,14 +54,30 @@ int number_of_nodes(mpc_ast_t *ast) {
 }
 
 long eval_op(long acc, char *op, long n) {
-  if (strcmp(op, "add") == 0) { return eval_op(acc, (char *)"+", n); }
-  if (strcmp(op, "sub") == 0) { return eval_op(acc, (char *)"-", n); }
-  if (strcmp(op, "mul") == 0) { return eval_op(acc, (char *)"*", n); }
-  if (strcmp(op, "div") == 0) { return eval_op(acc, (char *)"/", n); }
-  if (strcmp(op, "+") == 0) { return acc + n; }
-  if (strcmp(op, "-") == 0) { return acc - n; }
-  if (strcmp(op, "*") == 0) { return acc * n; }
-  if (strcmp(op, "/") == 0) { return acc / n; }
+  if (strcmp(op, "add") == 0) {
+    return eval_op(acc, (char *)"+", n);
+  }
+  if (strcmp(op, "sub") == 0) {
+    return eval_op(acc, (char *)"-", n);
+  }
+  if (strcmp(op, "mul") == 0) {
+    return eval_op(acc, (char *)"*", n);
+  }
+  if (strcmp(op, "div") == 0) {
+    return eval_op(acc, (char *)"/", n);
+  }
+  if (strcmp(op, "+") == 0) {
+    return acc + n;
+  }
+  if (strcmp(op, "-") == 0) {
+    return acc - n;
+  }
+  if (strcmp(op, "*") == 0) {
+    return acc * n;
+  }
+  if (strcmp(op, "/") == 0) {
+    return acc / n;
+  }
   return 0;
 }
 
@@ -70,11 +86,11 @@ long eval(mpc_ast_t *t) {
     return atoi(t->contents);
   }
 
-  char* op = t->children[1]->contents;
+  char *op = t->children[1]->contents;
   long x = eval(t->children[2]);
 
   int i = 3;
-  while(strstr(t->children[i]->tag, "expr")) {
+  while (strstr(t->children[i]->tag, "expr")) {
     x = eval_op(x, op, eval(t->children[i]));
     i++;
   }
