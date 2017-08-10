@@ -54,6 +54,10 @@ int number_of_nodes(mpc_ast_t *ast) {
 }
 
 long eval_op(long acc, char *op, long n) {
+  if (strcmp(op, "add") == 0) { return eval_op(acc, (char *)"+", n); }
+  if (strcmp(op, "sub") == 0) { return eval_op(acc, (char *)"-", n); }
+  if (strcmp(op, "mul") == 0) { return eval_op(acc, (char *)"*", n); }
+  if (strcmp(op, "div") == 0) { return eval_op(acc, (char *)"/", n); }
   if (strcmp(op, "+") == 0) { return acc + n; }
   if (strcmp(op, "-") == 0) { return acc - n; }
   if (strcmp(op, "*") == 0) { return acc * n; }
