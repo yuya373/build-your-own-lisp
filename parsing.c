@@ -109,6 +109,13 @@ long eval_op(long acc, char *op, long n) {
   if (strcmp(op, "%") == 0) {
     return acc % n;
   }
+  if (strcmp(op, "^") == 0) {
+    long ret = acc;
+    for (int i = 1; i < n; i++) {
+      ret = ret * acc;
+    }
+    return ret;
+  }
   return 0;
 }
 
@@ -135,7 +142,7 @@ int main(int argc, char **argv) {
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
-             operator: '+' | '-' | '*' | '/' | '%' | /(add|sub|mul|div)/ ; \
+             operator: '^' | '+' | '-' | '*' | '/' | '%' | /(add|sub|mul|div)/ ; \
              expr: <number> | '(' <operator> <expr>+ ')' ; \
              lispy: /^/ <operator> <expr>+ /$/ ; \
             ",
