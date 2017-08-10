@@ -67,6 +67,20 @@ long number_of_leaves(mpc_ast_t *t) {
   return 0;
 }
 
+long number_of_branches(mpc_ast_t *t) {
+  if (strstr(t->tag, "operator")) {
+    return 1;
+  }
+  if (t->children_num >= 1) {
+    int n = 0;
+    for (int i = 0; i < t->children_num; i++) {
+      n = n + number_of_branches(t->children[i]);
+    }
+    return n;
+  }
+  return 0;
+}
+
 long eval_op(long acc, char *op, long n) {
   if (strcmp(op, "add") == 0) {
     return eval_op(acc, (char *)"+", n);
@@ -136,7 +150,8 @@ int main(int argc, char **argv) {
       mpc_ast_t *ast = (mpc_ast_t *)r.output;
       /* print_ast(ast); */
       /* printf("Number of nodes: %i\n", number_of_nodes(ast)); */
-      printf("Number of leaves: %li\n", number_of_leaves(ast));
+      /* printf("Number of leaves: %li\n", number_of_leaves(ast)); */
+      printf("Number of branches: %li\n", number_of_branches(ast));
       printf("%li\n", eval(ast));
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
