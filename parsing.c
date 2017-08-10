@@ -116,6 +116,12 @@ long eval_op(long acc, char *op, long n) {
     }
     return ret;
   }
+  if (strcmp(op, "min") == 0) {
+    if (acc < n) {
+      return acc;
+    }
+    return n;
+  }
   return 0;
 }
 
@@ -142,7 +148,7 @@ int main(int argc, char **argv) {
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
-             operator: '^' | '+' | '-' | '*' | '/' | '%' | /(add|sub|mul|div)/ ; \
+             operator: '^' | '+' | '-' | '*' | '/' | '%' | /(add|sub|mul|div|min)/ ; \
              expr: <number> | '(' <operator> <expr>+ ')' ; \
              lispy: /^/ <operator> <expr>+ /$/ ; \
             ",
