@@ -24,6 +24,21 @@ void add_history(char *unused) {}
 #include <editline/readline.h>
 #endif
 
+void print_ast(mpc_ast_t *ast) {
+  printf("Tag: %s\n", ast->tag);
+  printf("Contents: %s\n", ast->contents);
+  printf("pos: %ld\n", ast->state.pos);
+  printf("row: %ld\n", ast->state.row);
+  printf("col: %ld\n", ast->state.col);
+  printf("Number of children: %i\n", ast->children_num);
+  if (ast->children_num > 0) {
+    for (int i = 0; i < ast->children_num; i++) {
+      printf("%i child\n", i);
+      print_ast(ast->children[i]);
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   mpc_parser_t *Number = mpc_new("number");
   mpc_parser_t *Operator = mpc_new("operator");
@@ -44,7 +59,9 @@ int main(int argc, char **argv) {
     mpc_result_t r;
     char *input = readline("lispy> ");
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
-      mpc_ast_print((mpc_ast_t *)r.output);
+      /* mpc_ast_print((mpc_ast_t *)r.output); */
+      mpc_ast_t *ast = (mpc_ast_t *)r.output;
+      print_ast(ast);
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
       mpc_err_print(r.error);
