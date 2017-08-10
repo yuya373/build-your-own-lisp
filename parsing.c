@@ -53,6 +53,31 @@ int number_of_nodes(mpc_ast_t *ast) {
   return 0;
 }
 
+long eval_op(long acc, char *op, long n) {
+  if (strcmp(op, "+") == 0) { return acc + n; }
+  if (strcmp(op, "-") == 0) { return acc - n; }
+  if (strcmp(op, "*") == 0) { return acc * n; }
+  if (strcmp(op, "/") == 0) { return acc / n; }
+  return 0;
+}
+
+long eval(mpc_ast_t *t) {
+  if (strstr(t->tag, "number")) {
+    return atoi(t->contents);
+  }
+
+  char* op = t->children[1]->contents;
+  long x = eval(t->children[2]);
+
+  int i = 3;
+  while(strstr(t->children[i]->tag, "expr")) {
+    x = eval_op(x, op, eval(t->children[i]));
+    i++;
+  }
+
+  return x;
+}
+
 int main(int argc, char **argv) {
   mpc_parser_t *Number = mpc_new("number");
   mpc_parser_t *Operator = mpc_new("operator");
@@ -75,8 +100,9 @@ int main(int argc, char **argv) {
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
       /* mpc_ast_print((mpc_ast_t *)r.output); */
       mpc_ast_t *ast = (mpc_ast_t *)r.output;
-      print_ast(ast);
-      printf("Number of nodes: %i\n", number_of_nodes(ast));
+      /* print_ast(ast); */
+      /* printf("Number of nodes: %i\n", number_of_nodes(ast)); */
+      printf("%li\n", eval(ast));
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
       mpc_err_print(r.error);
@@ -84,7 +110,7 @@ int main(int argc, char **argv) {
     }
     add_history(input);
 
-    puts(input);
+    /* puts(input); */
     /* from stdlib.h */
     free(input);
   }
