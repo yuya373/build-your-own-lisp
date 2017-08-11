@@ -24,8 +24,8 @@ void add_history(char *unused) {}
 #include <editline/readline.h>
 #endif
 
-enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
-enum { LVAL_NUM, LVAL_ERR };
+enum ERRORS { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+enum LVAL { LVAL_NUM, LVAL_ERR };
 
 typedef struct {
   int type;
