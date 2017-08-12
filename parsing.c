@@ -396,6 +396,7 @@ int main(int argc, char **argv) {
   mpc_parser_t *Lispy = mpc_new("lispy");
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
              symbol: '^' | '+' | '-' | '*' | '/' | '%' | \
+                     \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \
                      \"add\" | \"sub\" | \"mul\" | \"div\" | \"min\" | \"max\" ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
