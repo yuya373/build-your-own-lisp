@@ -29,11 +29,11 @@ enum LVAL { LVAL_NUM, LVAL_ERR };
 
 typedef struct {
   int type;
-  long num;
+  double num;
   int err;
 } lval;
 
-lval lval_num(long n) {
+lval lval_num(double n) {
   lval v;
   v.type = LVAL_NUM;
   v.num = n;
@@ -50,7 +50,7 @@ lval lval_err(int err) {
 void lval_print(lval v) {
   switch (v.type) {
   case LVAL_NUM:
-    printf("%li", v.num);
+    printf("%f", v.num);
     break;
   case LVAL_ERR:
     if (v.err == LERR_DIV_ZERO) {
@@ -154,7 +154,7 @@ lval eval_op(lval acc, char *op, lval n) {
     return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num);
   }
   if (strcmp(op, "%") == 0) {
-    return lval_num(acc.num % n.num);
+    return lval_num((long)acc.num % (long)n.num);
   }
   if (strcmp(op, "^") == 0) {
     long ret = acc.num;
@@ -181,7 +181,7 @@ lval eval_op(lval acc, char *op, lval n) {
 lval eval(mpc_ast_t *t) {
   if (strstr(t->tag, "number")) {
     errno = 0;
-    long x = strtol(t->contents, NULL, 10);
+    double x = strtod(t->contents, NULL);
     return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
   }
 
