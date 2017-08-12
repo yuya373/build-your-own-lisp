@@ -25,26 +25,78 @@ void add_history(char *unused) {}
 #endif
 
 enum ERRORS { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
-enum LVAL { LVAL_NUM, LVAL_ERR };
+enum LVAL { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR };
 
-typedef struct {
+/* reference to itself in struct, need struct name */
+/* must not contain its own type directly, contain pointer to its own type */
+/* struct size grow infinite when contain its own type directly */
+typedef struct lval {
   int type;
   double num;
-  int err;
+  char *err;
+  char *sym;
+  int count;
+  /* pointer to (a list of (pointer to lval)) */
+  struct lval **cell;
 } lval;
 
-lval lval_num(double n) {
-  lval v;
-  v.type = LVAL_NUM;
-  v.num = n;
+lval *lval_num(double n) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_NUM;
+  v->num = n;
   return v;
 }
 
-lval lval_err(int err) {
-  lval v;
-  v.type = LVAL_ERR;
-  v.err = err;
+lval *lval_err(char *m) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_ERR;
+  /* strlen returns the number of bytes in a string excluding the null
+   * terminator */
+  /* so need to add one to ensure enough allocated space for org string + null
+   * terminator */
+  v->err = (char *)malloc(strlen(m) + 1);
+  strcpy(v->err, m);
   return v;
+}
+
+lval *lval_sym(char *s) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_SYM;
+  v->sym = (char *)malloc(strlen(s) + 1);
+  strcpy(v->sym, s);
+  return v;
+}
+
+lval *lval_sexpr(void) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_SEXPR;
+  v->count = 0;
+  /* NULL is constant that points to memory location 0 */
+  v->cell = NULL;
+  return v;
+}
+
+void lval_del(lval *v) {
+  switch (v->type) {
+  case LVAL_NUM:
+    break;
+  case LVAL_ERR:
+    free(v->err);
+    break;
+  case LVAL_SYM:
+    free(v->sym);
+    break;
+  case LVAL_SEXPR:
+    /* delete all elements inside cell */
+    for (int i = 0; i < v->count; i++) {
+      lval_del(v->cell[i]);
+    }
+    /* also delete cell (memory allocated to contain pointers) itself */
+    free(v->cell);
+    break;
+  }
+
+  free(v);
 }
 
 void lval_print(lval v) {
