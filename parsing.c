@@ -135,7 +135,7 @@ lval *lval_read(mpc_ast_t *t) {
       continue;
     }
     if (strcmp(t->children[i]->tag, "regex") == 0) {
-      printf("tag is regex: %s", t->children[i]->contents);
+      /* printf("tag is regex: %s\n", t->children[i]->contents); */
       continue;
     }
     x = lval_add(x, lval_read(t->children[i]));
@@ -143,26 +143,37 @@ lval *lval_read(mpc_ast_t *t) {
   return x;
 }
 
-void lval_print(lval v) {
-  switch (v.type) {
+/* forward declare to resolve dependency */
+void lval_print(lval *v);
+void lval_expr_print(lval *v, char open, char close) {
+  putchar(open);
+  for (int i = 0; i < v->count; i++) {
+    lval_print(v->cell[i]);
+    if (i != (v->count - 1)) {
+      putchar(' ');
+    }
+  }
+  putchar(close);
+}
+
+void lval_print(lval *v) {
+  switch (v->type) {
   case LVAL_NUM:
-    printf("%f", v.num);
+    printf("%f", v->num);
     break;
   case LVAL_ERR:
-    if (v.err == LERR_DIV_ZERO) {
-      printf("Error: Division By Zero!");
-    }
-    if (v.err == LERR_BAD_OP) {
-      printf("Error: Invalid Operator!");
-    }
-    if (v.err == LERR_BAD_NUM) {
-      printf("Error: Invalid Number!");
-    }
+    printf("Error: %s", v->err);
+    break;
+  case LVAL_SYM:
+    printf("%s", v->sym);
+    break;
+  case LVAL_SEXPR:
+    lval_expr_print(v, '(', ')');
     break;
   }
 }
 
-void lval_println(lval v) {
+void lval_println(lval *v) {
   lval_print(v);
   putchar('\n');
 }
@@ -224,78 +235,78 @@ long number_of_branches(mpc_ast_t *t) {
   return 0;
 }
 
-lval eval_op(lval acc, char *op, lval n) {
-  if (strcmp(op, "add") == 0) {
-    return eval_op(acc, (char *)"+", n);
-  }
-  if (strcmp(op, "sub") == 0) {
-    return eval_op(acc, (char *)"-", n);
-  }
-  if (strcmp(op, "mul") == 0) {
-    return eval_op(acc, (char *)"*", n);
-  }
-  if (strcmp(op, "div") == 0) {
-    return eval_op(acc, (char *)"/", n);
-  }
-  if (strcmp(op, "+") == 0) {
-    return lval_num(acc.num + n.num);
-  }
-  if (strcmp(op, "-") == 0) {
-    return lval_num(acc.num - n.num);
-  }
-  if (strcmp(op, "*") == 0) {
-    return lval_num(acc.num * n.num);
-  }
-  if (strcmp(op, "/") == 0) {
-    return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num);
-  }
-  if (strcmp(op, "%") == 0) {
-    return lval_num((long)acc.num % (long)n.num);
-  }
-  if (strcmp(op, "^") == 0) {
-    long ret = acc.num;
-    for (int i = 1; i < n.num; i++) {
-      ret = ret * acc.num;
-    }
-    return lval_num(ret);
-  }
-  if (strcmp(op, "min") == 0) {
-    if (acc.num < n.num) {
-      return acc;
-    }
-    return n;
-  }
-  if (strcmp(op, "max") == 0) {
-    if (acc.num < n.num) {
-      return n;
-    }
-    return acc;
-  }
-  return lval_err(LERR_BAD_OP);
-}
+/* lval eval_op(lval acc, char *op, lval n) { */
+/*   if (strcmp(op, "add") == 0) { */
+/*     return eval_op(acc, (char *)"+", n); */
+/*   } */
+/*   if (strcmp(op, "sub") == 0) { */
+/*     return eval_op(acc, (char *)"-", n); */
+/*   } */
+/*   if (strcmp(op, "mul") == 0) { */
+/*     return eval_op(acc, (char *)"*", n); */
+/*   } */
+/*   if (strcmp(op, "div") == 0) { */
+/*     return eval_op(acc, (char *)"/", n); */
+/*   } */
+/*   if (strcmp(op, "+") == 0) { */
+/*     return lval_num(acc.num + n.num); */
+/*   } */
+/*   if (strcmp(op, "-") == 0) { */
+/*     return lval_num(acc.num - n.num); */
+/*   } */
+/*   if (strcmp(op, "*") == 0) { */
+/*     return lval_num(acc.num * n.num); */
+/*   } */
+/*   if (strcmp(op, "/") == 0) { */
+/*     return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num); */
+/*   } */
+/*   if (strcmp(op, "%") == 0) { */
+/*     return lval_num((long)acc.num % (long)n.num); */
+/*   } */
+/*   if (strcmp(op, "^") == 0) { */
+/*     long ret = acc.num; */
+/*     for (int i = 1; i < n.num; i++) { */
+/*       ret = ret * acc.num; */
+/*     } */
+/*     return lval_num(ret); */
+/*   } */
+/*   if (strcmp(op, "min") == 0) { */
+/*     if (acc.num < n.num) { */
+/*       return acc; */
+/*     } */
+/*     return n; */
+/*   } */
+/*   if (strcmp(op, "max") == 0) { */
+/*     if (acc.num < n.num) { */
+/*       return n; */
+/*     } */
+/*     return acc; */
+/*   } */
+/*   return lval_err(LERR_BAD_OP); */
+/* } */
 
-lval eval(mpc_ast_t *t) {
-  if (strstr(t->tag, "number")) {
-    errno = 0;
-    double x = strtod(t->contents, NULL);
-    return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
-  }
+/* lval eval(mpc_ast_t *t) { */
+/*   if (strstr(t->tag, "number")) { */
+/*     errno = 0; */
+/*     double x = strtod(t->contents, NULL); */
+/*     return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM); */
+/*   } */
 
-  char *op = t->children[1]->contents;
-  lval x = eval(t->children[2]);
+/*   char *op = t->children[1]->contents; */
+/*   lval x = eval(t->children[2]); */
 
-  if (strcmp(op, "-") == 0 && !strstr(t->children[3]->tag, "expr")) {
-    return eval_op(lval_num(0), (char *)"-", x);
-  }
+/*   if (strcmp(op, "-") == 0 && !strstr(t->children[3]->tag, "expr")) { */
+/*     return eval_op(lval_num(0), (char *)"-", x); */
+/*   } */
 
-  int i = 3;
-  while (strstr(t->children[i]->tag, "expr")) {
-    x = eval_op(x, op, eval(t->children[i]));
-    i++;
-  }
+/*   int i = 3; */
+/*   while (strstr(t->children[i]->tag, "expr")) { */
+/*     x = eval_op(x, op, eval(t->children[i])); */
+/*     i++; */
+/*   } */
 
-  return x;
-}
+/*   return x; */
+/* } */
 
 int main(int argc, char **argv) {
   mpc_parser_t *Number = mpc_new("number");
@@ -326,8 +337,11 @@ int main(int argc, char **argv) {
       /* printf("Number of leaves: %li\n", number_of_leaves(ast)); */
       /* printf("Number of branches: %li\n", number_of_branches(ast)); */
       /* printf("%li\n", eval(ast)); */
-      lval result = eval(ast);
-      lval_println(result);
+      /* lval result = eval(ast); */
+      /* lval_println(result); */
+      lval *x = lval_read(ast);
+      lval_println(x);
+      lval_del(x);
       mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
       mpc_err_print(r.error);
