@@ -339,6 +339,15 @@ lval *builtin_op(lval *a, char *op) {
       }
       x->num /= y->num;
     }
+    if (strcmp(op, "%") == 0) {
+      if (y->num == 0) {
+        lval_del(x);
+        lval_del(y);
+        x = lval_err((char *)"Division By Zero!");
+        break;
+      }
+      x->num = (int)x->num % (int)y->num;
+    }
 
     lval_del(y);
   }
