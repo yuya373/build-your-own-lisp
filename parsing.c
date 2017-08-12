@@ -347,80 +347,6 @@ lval *builtin_op(lval *a, char *op) {
   return x;
 }
 
-/* lval eval_op(lval acc, char *op, lval n) { */
-/*   if (strcmp(op, "add") == 0) { */
-/*     return eval_op(acc, (char *)"+", n); */
-/*   } */
-/*   if (strcmp(op, "sub") == 0) { */
-/*     return eval_op(acc, (char *)"-", n); */
-/*   } */
-/*   if (strcmp(op, "mul") == 0) { */
-/*     return eval_op(acc, (char *)"*", n); */
-/*   } */
-/*   if (strcmp(op, "div") == 0) { */
-/*     return eval_op(acc, (char *)"/", n); */
-/*   } */
-/*   if (strcmp(op, "+") == 0) { */
-/*     return lval_num(acc.num + n.num); */
-/*   } */
-/*   if (strcmp(op, "-") == 0) { */
-/*     return lval_num(acc.num - n.num); */
-/*   } */
-/*   if (strcmp(op, "*") == 0) { */
-/*     return lval_num(acc.num * n.num); */
-/*   } */
-/*   if (strcmp(op, "/") == 0) { */
-/*     return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num);
- */
-/*   } */
-/*   if (strcmp(op, "%") == 0) { */
-/*     return lval_num((long)acc.num % (long)n.num); */
-/*   } */
-/*   if (strcmp(op, "^") == 0) { */
-/*     long ret = acc.num; */
-/*     for (int i = 1; i < n.num; i++) { */
-/*       ret = ret * acc.num; */
-/*     } */
-/*     return lval_num(ret); */
-/*   } */
-/*   if (strcmp(op, "min") == 0) { */
-/*     if (acc.num < n.num) { */
-/*       return acc; */
-/*     } */
-/*     return n; */
-/*   } */
-/*   if (strcmp(op, "max") == 0) { */
-/*     if (acc.num < n.num) { */
-/*       return n; */
-/*     } */
-/*     return acc; */
-/*   } */
-/*   return lval_err(LERR_BAD_OP); */
-/* } */
-
-/* lval eval(mpc_ast_t *t) { */
-/*   if (strstr(t->tag, "number")) { */
-/*     errno = 0; */
-/*     double x = strtod(t->contents, NULL); */
-/*     return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM); */
-/*   } */
-
-/*   char *op = t->children[1]->contents; */
-/*   lval x = eval(t->children[2]); */
-
-/*   if (strcmp(op, "-") == 0 && !strstr(t->children[3]->tag, "expr")) { */
-/*     return eval_op(lval_num(0), (char *)"-", x); */
-/*   } */
-
-/*   int i = 3; */
-/*   while (strstr(t->children[i]->tag, "expr")) { */
-/*     x = eval_op(x, op, eval(t->children[i])); */
-/*     i++; */
-/*   } */
-
-/*   return x; */
-/* } */
-
 int main(int argc, char **argv) {
   mpc_parser_t *Number = mpc_new("number");
   mpc_parser_t *Symbol = mpc_new("symbol");
@@ -443,15 +369,7 @@ int main(int argc, char **argv) {
     mpc_result_t r;
     char *input = readline("lispy> ");
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
-      /* mpc_ast_print((mpc_ast_t *)r.output); */
       mpc_ast_t *ast = (mpc_ast_t *)r.output;
-      /* print_ast(ast); */
-      /* printf("Number of nodes: %i\n", number_of_nodes(ast)); */
-      /* printf("Number of leaves: %li\n", number_of_leaves(ast)); */
-      /* printf("Number of branches: %li\n", number_of_branches(ast)); */
-      /* printf("%li\n", eval(ast)); */
-      /* lval result = eval(ast); */
-      /* lval_println(result); */
       lval *x = lval_eval(lval_read(ast));
       lval_println(x);
       lval_del(x);
@@ -462,7 +380,6 @@ int main(int argc, char **argv) {
     }
     add_history(input);
 
-    /* puts(input); */
     /* from stdlib.h */
     free(input);
   }
