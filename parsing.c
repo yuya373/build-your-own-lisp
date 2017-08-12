@@ -348,6 +348,16 @@ lval *builtin_op(lval *a, char *op) {
       }
       x->num = (int)x->num % (int)y->num;
     }
+    if (strcmp(op, "min") == 0) {
+      if (x->num > y->num) {
+        x->num = y->num;
+      }
+    }
+    if (strcmp(op, "max") == 0) {
+      if (x->num < y->num) {
+        x->num = y->num;
+      }
+    }
 
     lval_del(y);
   }
