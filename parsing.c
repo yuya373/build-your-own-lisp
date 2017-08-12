@@ -235,6 +235,118 @@ long number_of_branches(mpc_ast_t *t) {
   return 0;
 }
 
+lval *lval_take(lval *v, int i);
+lval *lval_pop(lval *v, int i);
+lval *lval_eval(lval *v);
+lval *builtin_op(lval *a, char *op);
+lval *lval_eval_sexpr(lval *v) {
+  for (int i = 0; i < v->count; i++) {
+    v->cell[i] = lval_eval(v->cell[i]);
+  }
+
+  for (int i = 0; i < v->count; i++) {
+    if (v->cell[i]->type == LVAL_ERR) {
+      return lval_take(v, i);
+    }
+  }
+
+  if (v->count == 0) {
+    return v;
+  }
+
+  if (v->count == 1) {
+    return lval_take(v, 0);
+  }
+
+  lval *f = lval_pop(v, 0);
+  if (f->type != LVAL_SYM) {
+    lval_del(f);
+    lval_del(v);
+    return lval_err((char *)"S-expression Does not start with symbol!");
+  }
+
+  lval *result = builtin_op(v, f->sym);
+  lval_del(f);
+  return result;
+}
+
+lval *lval_eval(lval *v) {
+  if (v->type == LVAL_SEXPR) {
+    return lval_eval_sexpr(v);
+  }
+  return v;
+}
+
+lval *lval_pop(lval *v, int i) {
+  lval *x = v->cell[i];
+
+  /* struct lval *destination = v->cell[i]; */
+  /* struct lval *src = v->cell[i + 1]; */
+  /* size_t n = sizeof(lval *) * (v->count - (i + 1)); */
+  /* memmove(&destination, &src, n); */
+  /* ↑this does not work why? :thinking: */
+  struct lval **destination = &v->cell[i];
+  struct lval **src = &v->cell[i + 1];
+  size_t n = sizeof(lval *) * (v->count - (i + 1));
+  memmove(destination, src, n);
+
+  v->count--;
+
+  v->cell = (struct lval **)realloc(v->cell, (sizeof(lval *) * v->count));
+
+  return x;
+}
+
+lval *lval_take(lval *v, int i) {
+  lval *x = lval_pop(v, i);
+  lval_del(v);
+  return x;
+}
+
+lval *builtin_op(lval *a, char *op) {
+  for (int i = 0; i < a->count; i++) {
+    /* printf("lval type: %i", a->cell[i]->type); */
+    if (a->cell[i]->type != LVAL_NUM) {
+      lval_del(a);
+      return lval_err((char *)"Cannot operate on non-number!");
+    }
+  }
+
+  lval *x = lval_pop(a, 0);
+
+  if ((strcmp(op, "-") == 0) && a->count == 0) {
+    x->num = -x->num;
+  }
+
+  while (a->count > 0) {
+    lval *y = lval_pop(a, 0);
+
+    if (strcmp(op, "+") == 0 || strcmp(op, "add") == 0) {
+      x->num += y->num;
+    }
+    if (strcmp(op, "-") == 0 || strcmp(op, "sub") == 0) {
+      x->num -= y->num;
+    }
+    if (strcmp(op, "*") == 0 || strcmp(op, "mul") == 0) {
+      x->num *= y->num;
+    }
+    if (strcmp(op, "/") == 0 || strcmp(op, "div") == 0) {
+      if (y->num == 0) {
+        lval_del(x);
+        lval_del(y);
+        x = lval_err((char *)"Division By Zero!");
+        break;
+      }
+      x->num /= y->num;
+    }
+
+    lval_del(y);
+  }
+
+  lval_del(a);
+  return x;
+}
+
 /* lval eval_op(lval acc, char *op, lval n) { */
 /*   if (strcmp(op, "add") == 0) { */
 /*     return eval_op(acc, (char *)"+", n); */
@@ -258,7 +370,8 @@ long number_of_branches(mpc_ast_t *t) {
 /*     return lval_num(acc.num * n.num); */
 /*   } */
 /*   if (strcmp(op, "/") == 0) { */
-/*     return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num); */
+/*     return n.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(acc.num / n.num);
+ */
 /*   } */
 /*   if (strcmp(op, "%") == 0) { */
 /*     return lval_num((long)acc.num % (long)n.num); */
@@ -339,7 +452,7 @@ int main(int argc, char **argv) {
       /* printf("%li\n", eval(ast)); */
       /* lval result = eval(ast); */
       /* lval_println(result); */
-      lval *x = lval_read(ast);
+      lval *x = lval_eval(lval_read(ast));
       lval_println(x);
       lval_del(x);
       mpc_ast_delete((mpc_ast_t *)r.output);
