@@ -318,11 +318,11 @@ void lval_println(lval *v) {
 
 lval *lval_take(lval *v, int i);
 lval *lval_pop(lval *v, int i);
-lval *lval_eval(lval *v);
+lval *lval_eval(lenv * e, lval *v);
 lval *buitin(lval *a, char *func);
-lval *lval_eval_sexpr(lval *v) {
+lval *lval_eval_sexpr(lenv *e, lval *v) {
   for (int i = 0; i < v->count; i++) {
-    v->cell[i] = lval_eval(v->cell[i]);
+    v->cell[i] = lval_eval(e, v->cell[i]);
   }
 
   for (int i = 0; i < v->count; i++) {
@@ -340,20 +340,25 @@ lval *lval_eval_sexpr(lval *v) {
   }
 
   lval *f = lval_pop(v, 0);
-  if (f->type != LVAL_SYM) {
+  if (f->type != LVAL_FUN) {
     lval_del(f);
     lval_del(v);
-    return lval_err((char *)"S-expression Does not start with symbol!");
+    return lval_err((char *)"first element is not a function");
   }
 
-  lval *result = buitin(v, f->sym);
+  lval *result = f->fun(e, v);
   lval_del(f);
   return result;
 }
 
-lval *lval_eval(lval *v) {
+lval *lval_eval(lenv *e, lval *v) {
+  if (v->type == LVAL_SYM) {
+    lval *x = lenv_get(e, v);
+    lval_del(v);
+    return x;
+  }
   if (v->type == LVAL_SEXPR) {
-    return lval_eval_sexpr(v);
+    return lval_eval_sexpr(e, v);
   }
   return v;
 }
