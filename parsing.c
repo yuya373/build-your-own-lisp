@@ -111,6 +111,8 @@ lval *lval_copy(lval *v) {
   switch (v->type) {
   case LVAL_FUN:
     x->fun = v->fun;
+    x->sym = (char *)malloc(strlen(v->sym) + 1);
+    strcpy(x->sym, v->sym);
     break;
   case LVAL_NUM:
     x->num = v->num;
@@ -214,10 +216,12 @@ lval *lval_qexpr(void) {
   return v;
 }
 
-lval *lval_fun(lbuiltin func) {
+lval *lval_fun(lbuiltin func, char *name) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_FUN;
   v->fun = func;
+  v->sym = (char *)malloc(strlen(name) + 1);
+  strcpy(v->sym, name);
   return v;
 }
 
@@ -241,6 +245,7 @@ void lval_del(lval *v) {
     free(v->cell);
     break;
   case LVAL_FUN:
+    free(v->sym);
     break;
   }
 
@@ -332,7 +337,7 @@ void lval_print(lval *v) {
     lval_expr_print(v, '{', '}');
     break;
   case LVAL_FUN:
-    printf("<function>");
+    printf("<function: %s>", v->sym);
     break;
   }
 }
@@ -638,7 +643,7 @@ lval *builtin_def(lenv *e, lval *a) {
 
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
-  lval *v = lval_fun(func);
+  lval *v = lval_fun(func, name);
   lenv_put(e, k, v);
   lval_del(k);
   lval_del(v);
