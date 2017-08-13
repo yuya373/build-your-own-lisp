@@ -488,6 +488,24 @@ lval *builtin_len(lval *a) {
   return lval_num(len);
 }
 
+lval *builtin_init(lval *a) {
+  LASSERT(a, a->count == 1,
+          (char *)"Function 'init' passed too many arguments!");
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+          (char *)"Function 'init' passed incorrect type");
+
+  lval *x = lval_qexpr();
+  lval *arg = lval_pop(a, 0);
+
+  while (arg->count > 1) {
+    x = lval_add(x, lval_pop(arg, 0));
+  }
+
+  lval_del(a);
+
+  return x;
+}
+
 lval *buitin(lval *a, char *func) {
   if (strcmp("list", func) == 0) {
     return builtin_list(a);
@@ -509,6 +527,9 @@ lval *buitin(lval *a, char *func) {
   }
   if (strcmp("len", func) == 0) {
     return builtin_len(a);
+  }
+  if (strcmp("init", func) == 0) {
+    return builtin_init(a);
   }
   if (strcmp("+", func) == 0 || strcmp("-", func) == 0 ||
       strcmp("^", func) == 0 || strcmp("*", func) == 0 ||
@@ -532,7 +553,7 @@ int main(int argc, char **argv) {
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
              symbol: '^' | '+' | '-' | '*' | '/' | '%' | \
                      \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \
-                     \"cons\" | \"len\" | \
+                     \"cons\" | \"len\" | \"init\" | \
                      \"add\" | \"sub\" | \"mul\" | \"div\" | \"min\" | \"max\" ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
