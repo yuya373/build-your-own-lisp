@@ -550,11 +550,10 @@ int main(int argc, char **argv) {
   mpc_parser_t *Qexpr = mpc_new("qexpr");
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
+  /* this is part of a C string we need to put two backslashes to represent a
+   * single backslash character in the input. */
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
-             symbol: '^' | '+' | '-' | '*' | '/' | '%' | \
-                     \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \
-                     \"cons\" | \"len\" | \"init\" | \
-                     \"add\" | \"sub\" | \"mul\" | \"div\" | \"min\" | \"max\" ; \
+             symbol : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
              expr: <number> | <symbol> | <sexpr> | <qexpr> ; \
