@@ -24,6 +24,12 @@ void add_history(char *unused) {}
 #include <editline/readline.h>
 #endif
 
+#define LASSERT(args, cond, err)                                               \
+  if (!(cond)) {                                                               \
+    lval_del(args);                                                            \
+    return lval_err(err);                                                      \
+  }
+
 enum ERRORS { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
 enum LVAL { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
 
@@ -388,20 +394,11 @@ lval *builtin_op(lval *a, char *op) {
 }
 
 lval *builtin_head(lval *a) {
-  if (a->count != 1) {
-    lval_del(a);
-    return lval_err((char *)"Function 'head' passed too many arguments!");
-  }
-
-  if (a->cell[0]->type != LVAL_QEXPR) {
-    lval_del(a);
-    return lval_err((char *)"Function 'head' passed incorrect types!");
-  }
-
-  if (a->cell[0]->count == 0) {
-    lval_del(a);
-    return lval_err((char *)"Function 'head' passed {}!");
-  }
+  LASSERT(a, a->count == 1,
+          (char *)"Function 'head' passed too many arguments!");
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+          (char *)"Function 'head' passed incorrect types!");
+  LASSERT(a, a->cell[0]->count != 0, (char *)"Function 'head' passed {}!");
 
   lval *v = lval_take(a, 0);
   while (v->count > 1) {
@@ -411,24 +408,55 @@ lval *builtin_head(lval *a) {
 }
 
 lval *builtin_tail(lval *a) {
-  if (a->count != 1) {
-    lval_del(a);
-    return lval_err("Function 'tail' passed too many arguments!");
-  }
-
-  if (a->cell[0]->type != LVAL_QEXPR) {
-    lval_del(a);
-    return lval_err("Function 'tail' passed incorrect types!");
-  }
-
-  if (a->cell[0]->count == 0) {
-    lval_del(a);
-    return lval_err("Function 'tail' passed {}!");
-  }
+  LASSERT(a, a->count == 1,
+          (char *)"Function 'tail' passed too many arguments!");
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+          (char *)"Function 'tail' passed incorrect types!");
+  LASSERT(a, a->cell[0]->count != 0, (char *)"Function 'tail' passed {}!");
 
   lval *v = lval_take(a, 0);
   lval_del(lval_pop(v, 0));
   return v;
+}
+
+lval *builtin_list(lval *a) {
+  a->type = LVAL_QEXPR;
+  return a;
+}
+
+lval *builtin_eval(lval *a) {
+  LASSERT(a, a->count == 1,
+          (char *)"Function 'eval' passed too many arguments!");
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+          (char *)"Function 'eval' passed incorrect type!");
+
+  lval *x = lval_take(a, 0);
+  x->type = LVAL_SEXPR;
+  return lval_eval(x);
+}
+
+lval *lval_join(lval *x, lval *y) {
+  while (y->count) {
+    x = lval_add(x, lval_pop(y, 0));
+  }
+
+  lval_del(y);
+  return x;
+}
+
+lval *builtin_join(lval *a) {
+  for (int i = 0; i < a->count; i++) {
+    LASSERT(a, a->cell[i]->type == LVAL_QEXPR,
+            (char *)"Function 'join' passed incorrect type.");
+  }
+
+  lval *x = lval_pop(a, 0);
+  while (a->count) {
+    x = lval_join(x, lval_pop(a, 0));
+  }
+
+  lval_del(a);
+  return x;
 }
 
 int main(int argc, char **argv) {
