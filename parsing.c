@@ -29,21 +29,37 @@ void add_history(char *unused) {}
     lval_del(args);                                                            \
     return lval_err(err);                                                      \
   }
+/* Forward Declarations */
+struct lval;
+struct lenv;
+typedef struct lval lval;
+typedef struct lenv lenv;
 
-enum LVAL { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
-
+enum LISP_VALUE {
+  LVAL_NUM,
+  LVAL_ERR,
+  LVAL_SYM,
+  LVAL_SEXPR,
+  LVAL_QEXPR,
+  LVAL_FUN
+};
+/* To get an lval* we dereference lbuiltin and call it with a lenv* and a lval*.
+ * Therefore lbuiltin must be a function pointer that takes an lenv* and a lval*
+ * and returns a lval*. */
+typedef lval *(*lbuiltin)(lenv *, lval *);
 /* reference to itself in struct, need struct name */
 /* must not contain its own type directly, contain pointer to its own type */
 /* struct size grow infinite when contain its own type directly */
-typedef struct lval {
+struct lval {
   int type;
   double num;
   char *err;
   char *sym;
   int count;
+  lbuiltin fun;
   /* pointer to (a list of (pointer to lval)) */
   struct lval **cell;
-} lval;
+};
 
 lval *lval_num(double n) {
   lval *v = (lval *)malloc(sizeof(lval));
