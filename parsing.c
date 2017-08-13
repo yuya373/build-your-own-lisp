@@ -265,7 +265,7 @@ long number_of_branches(mpc_ast_t *t) {
 lval *lval_take(lval *v, int i);
 lval *lval_pop(lval *v, int i);
 lval *lval_eval(lval *v);
-lval *builtin_op(lval *a, char *op);
+lval *buitin(lval *a, char *func);
 lval *lval_eval_sexpr(lval *v) {
   for (int i = 0; i < v->count; i++) {
     v->cell[i] = lval_eval(v->cell[i]);
@@ -292,7 +292,7 @@ lval *lval_eval_sexpr(lval *v) {
     return lval_err((char *)"S-expression Does not start with symbol!");
   }
 
-  lval *result = builtin_op(v, f->sym);
+  lval *result = buitin(v, f->sym);
   lval_del(f);
   return result;
 }
@@ -457,6 +457,34 @@ lval *builtin_join(lval *a) {
 
   lval_del(a);
   return x;
+}
+
+lval *buitin(lval *a, char *func) {
+  if (strcmp("list", func) == 0) {
+    return builtin_list(a);
+  }
+  if (strcmp("head", func) == 0) {
+    return builtin_head(a);
+  }
+  if (strcmp("tail", func) == 0) {
+    return builtin_tail(a);
+  }
+  if (strcmp("join", func) == 0) {
+    return builtin_join(a);
+  }
+  if (strcmp("eval", func) == 0) {
+    return builtin_eval(a);
+  }
+  if (strcmp("+", func) == 0 || strcmp("-", func) == 0 ||
+      strcmp("^", func) == 0 || strcmp("*", func) == 0 ||
+      strcmp("/", func) == 0 || strcmp("%", func) == 0 ||
+      strcmp("add", func) == 0 || strcmp("sub", func) == 0 ||
+      strcmp("mul", func) == 0 || strcmp("div", func) == 0 ||
+      strcmp("min", func) == 0 || strcmp("max", func) == 0) {
+    return builtin_op(a, func);
+  }
+  lval_del(a);
+  return lval_err((char *)"Unknown Function!");
 }
 
 int main(int argc, char **argv) {
