@@ -30,7 +30,6 @@ void add_history(char *unused) {}
     return lval_err(err);                                                      \
   }
 
-enum ERRORS { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
 enum LVAL { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR };
 
 /* reference to itself in struct, need struct name */
@@ -203,63 +202,6 @@ void lval_print(lval *v) {
 void lval_println(lval *v) {
   lval_print(v);
   putchar('\n');
-}
-
-void print_ast(mpc_ast_t *ast) {
-  printf("Tag: %s\n", ast->tag);
-  printf("Contents: %s\n", ast->contents);
-  printf("pos: %ld\n", ast->state.pos);
-  printf("row: %ld\n", ast->state.row);
-  printf("col: %ld\n", ast->state.col);
-  printf("Number of children: %i\n", ast->children_num);
-  if (ast->children_num > 0) {
-    for (int i = 0; i < ast->children_num; i++) {
-      printf("%i child\n", i);
-      print_ast(ast->children[i]);
-    }
-  }
-}
-
-int number_of_nodes(mpc_ast_t *ast) {
-  if (ast->children_num == 0) {
-    return 1;
-  }
-  if (ast->children_num >= 1) {
-    int total = 1;
-    for (int i = 0; i < ast->children_num; i++) {
-      total = total + number_of_nodes(ast->children[i]);
-    }
-    return total;
-  }
-  return 0;
-}
-
-long number_of_leaves(mpc_ast_t *t) {
-  if (strstr(t->tag, "number") || strstr(t->tag, "operator")) {
-    return 1;
-  }
-  if (t->children_num >= 1) {
-    int n = 0;
-    for (int i = 0; i < t->children_num; i++) {
-      n = n + number_of_leaves(t->children[i]);
-    }
-    return n;
-  }
-  return 0;
-}
-
-long number_of_branches(mpc_ast_t *t) {
-  if (strstr(t->tag, "operator")) {
-    return 1;
-  }
-  if (t->children_num >= 1) {
-    int n = 0;
-    for (int i = 0; i < t->children_num; i++) {
-      n = n + number_of_branches(t->children[i]);
-    }
-    return n;
-  }
-  return 0;
 }
 
 lval *lval_take(lval *v, int i);
