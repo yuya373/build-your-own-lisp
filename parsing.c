@@ -24,10 +24,11 @@ void add_history(char *unused) {}
 #include <editline/readline.h>
 #endif
 
-#define LASSERT(args, cond, err)                                               \
+#define LASSERT(args, cond, fmt, ...)                                          \
   if (!(cond)) {                                                               \
+    lval *err = lval_err(fmt, ##__VA_ARGS__);                                  \
     lval_del(args);                                                            \
-    return lval_err(err);                                                      \
+    return err;                                                                \
   }
 /* Forward Declarations */
 struct lval;
@@ -43,6 +44,25 @@ enum LISP_VALUE {
   LVAL_QEXPR,
   LVAL_FUN
 };
+
+char *ltype_name(int t) {
+  switch (t) {
+  case LVAL_NUM:
+    return (char *)"Number";
+  case LVAL_ERR:
+    return (char *)"Error";
+  case LVAL_SYM:
+    return (char *)"Symbol";
+  case LVAL_SEXPR:
+    return (char *)"S-Expression";
+  case LVAL_QEXPR:
+    return (char *)"Q-Expression";
+  case LVAL_FUN:
+    return (char *)"Function";
+  default:
+    return (char *)"Unknown";
+  }
+}
 /* To get an lval* we dereference lbuiltin and call it with a lenv* and a lval*.
  * Therefore lbuiltin must be a function pointer that takes an lenv* and a lval*
  * and returns a lval*. */
@@ -115,7 +135,7 @@ lval *lval_copy(lval *v) {
   return x;
 }
 
-lval *lval_err(char *m);
+lval *lval_err(char *m, ...);
 lval *lenv_get(lenv *e, lval *k) {
   for (int i = 0; i < e->count; i++) {
     if (strcmp(e->syms[i], k->sym) == 0) {
@@ -152,15 +172,20 @@ lval *lval_num(double n) {
   return v;
 }
 
-lval *lval_err(char *m) {
+lval *lval_err(char *fmt, ...) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_ERR;
-  /* strlen returns the number of bytes in a string excluding the null
-   * terminator */
-  /* so need to add one to ensure enough allocated space for org string + null
-   * terminator */
-  v->err = (char *)malloc(strlen(m) + 1);
-  strcpy(v->err, m);
+
+  va_list va;
+  va_start(va, fmt);
+
+  v->err = (char *)malloc(512);
+
+  vsnprintf(v->err, 511, fmt, va);
+
+  v->err = (char *)realloc(v->err, strlen(v->err) + 1);
+
+  va_end(va);
   return v;
 }
 
@@ -225,7 +250,8 @@ void lval_del(lval *v) {
 lval *lval_read_num(mpc_ast_t *t) {
   errno = 0;
   double x = strtod(t->contents, NULL);
-  return errno != ERANGE ? lval_num(x) : lval_err((char *)"invalid number");
+  return errno != ERANGE ? lval_num(x)
+                         : lval_err((char *)"invalid number, %f", x);
 }
 
 lval *lval_add(lval *v, lval *x) {
@@ -394,7 +420,10 @@ lval *builtin_op(lenv *e, lval *a, char *op) {
     /* printf("lval type: %i", a->cell[i]->type); */
     if (a->cell[i]->type != LVAL_NUM) {
       lval_del(a);
-      return lval_err((char *)"Cannot operate on non-number!");
+      return lval_err((char *)"Function '%s' passed incorrect type for "
+                              "argument %i. Got %s, Expected %s",
+                      op, i, ltype_name(a->cell[i]->type),
+                      ltype_name(LVAL_NUM));
     }
   }
 
@@ -453,10 +482,14 @@ lval *builtin_op(lenv *e, lval *a, char *op) {
 }
 
 lval *builtin_head(lenv *e, lval *a) {
-  LASSERT(a, a->count == 1,
-          (char *)"Function 'head' passed too many arguments!");
+  LASSERT(
+      a, a->count == 1,
+      (char *)"Function 'head' passed too many arguments. Got %i, Expected %i",
+      a->count, 1);
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
-          (char *)"Function 'head' passed incorrect types!");
+          (char *)"Function 'head' passed incorrect type for argument 0. Got "
+                  "%s, Expected %s",
+          ltype_name(a->cell[0]->type), ltype_name(LVAL_QEXPR));
   LASSERT(a, a->cell[0]->count != 0, (char *)"Function 'head' passed {}!");
 
   lval *v = lval_take(a, 0);
