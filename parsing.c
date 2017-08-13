@@ -105,6 +105,13 @@ lval *lval_qexpr(void) {
   return v;
 }
 
+lval *lval_fun(lbuiltin func) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_FUN;
+  v->fun = func;
+  return v;
+}
+
 void lval_del(lval *v) {
   switch (v->type) {
   case LVAL_NUM:
@@ -123,6 +130,8 @@ void lval_del(lval *v) {
     }
     /* also delete cell (memory allocated to contain pointers) itself */
     free(v->cell);
+    break;
+  case LVAL_FUN:
     break;
   }
 
@@ -212,12 +221,46 @@ void lval_print(lval *v) {
   case LVAL_QEXPR:
     lval_expr_print(v, '{', '}');
     break;
+  case LVAL_FUN:
+    printf("<function>");
+    break;
   }
 }
 
 void lval_println(lval *v) {
   lval_print(v);
   putchar('\n');
+}
+
+lval *lval_copy(lval *v) {
+  lval *x = (lval *)malloc(sizeof(lval));
+  x->type = v->type;
+
+  switch (v->type) {
+  case LVAL_FUN:
+    x->fun = v->fun;
+    break;
+  case LVAL_NUM:
+    x->num = v->num;
+    break;
+  case LVAL_ERR:
+    x->err = (char *)malloc(strlen(v->err) + 1);
+    strcpy(x->err, v->err);
+    break;
+  case LVAL_SYM:
+    x->sym = (char *)malloc(strlen(v->sym) + 1);
+    strcpy(x->sym, v->sym);
+    break;
+  case LVAL_SEXPR:
+  case LVAL_QEXPR:
+    x->count = v->count;
+    x->cell = (lval **)malloc(sizeof(lval *) * x->count);
+    for (int i = 0; i < x->count; i++) {
+      x->cell[i] = lval_copy(v->cell[i]);
+    }
+    break;
+  }
+  return x;
 }
 
 lval *lval_take(lval *v, int i);
