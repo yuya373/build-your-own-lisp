@@ -573,6 +573,36 @@ lval *builtin_mod(lenv *e, lval *a) { return builtin_op(e, a, (char *)"%"); }
 lval *builtin_min(lenv *e, lval *a) { return builtin_op(e, a, (char *)"min"); }
 lval *builtin_max(lenv *e, lval *a) { return builtin_op(e, a, (char *)"max"); }
 
+lval *builtin_def(lenv *e, lval *a) {
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
+          (char *)"Function 'def' passed incorrect type!");
+
+  lval *syms = a->cell[0];
+
+  for (int i = 0; i < syms->count; i++) {
+    /* printf("cell[%i]: %i\n", i, syms->cell[i]->type); */
+    LASSERT(a, syms->cell[i]->type == LVAL_SYM,
+            (char *)"Function 'def' cannot define non-symbol");
+  }
+
+  /* printf("syms->count: %i\n", syms->count); */
+  /* printf("a->count: %i\n", a->count); */
+
+  LASSERT(a, syms->count == (a->count - 1),
+          (char *)"Function 'def' cannot define incorrect number of values to "
+                  "symbols");
+
+  for (int i = 0; i < syms->count; i++) {
+    /* i is syms, +1 to fetch corresponding value */
+    /* a->cell: [syms 1 2] */
+    /* syms->cell: [a b] */
+    lenv_put(e, syms->cell[i], a->cell[i + 1]);
+  }
+
+  lval_del(a);
+  return lval_sexpr();
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func);
@@ -600,6 +630,8 @@ void lenv_add_builtins(lenv *e) {
 
   lenv_add_builtin(e, (char *)"min", builtin_min);
   lenv_add_builtin(e, (char *)"max", builtin_max);
+
+  lenv_add_builtin(e, (char *)"def", builtin_def);
 }
 
 int main(int argc, char **argv) {
