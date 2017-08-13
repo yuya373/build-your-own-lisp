@@ -459,6 +459,23 @@ lval *builtin_join(lval *a) {
   return x;
 }
 
+lval *builtin_cons(lval *a) {
+  for (int i = 1; i < a->count; i++) {
+    LASSERT(a, a->cell[i]->type == LVAL_QEXPR,
+            (char *)"Function 'cons' passed incorrect type.");
+  }
+
+  lval *x = lval_qexpr();
+  x = lval_add(x, lval_pop(a, 0));
+
+  while (a->count) {
+    x = lval_join(x, lval_pop(a, 0));
+  }
+
+  lval_del(a);
+  return x;
+}
+
 lval *buitin(lval *a, char *func) {
   if (strcmp("list", func) == 0) {
     return builtin_list(a);
@@ -474,6 +491,9 @@ lval *buitin(lval *a, char *func) {
   }
   if (strcmp("eval", func) == 0) {
     return builtin_eval(a);
+  }
+  if (strcmp("cons", func) == 0) {
+    return builtin_cons(a);
   }
   if (strcmp("+", func) == 0 || strcmp("-", func) == 0 ||
       strcmp("^", func) == 0 || strcmp("*", func) == 0 ||
@@ -497,6 +517,7 @@ int main(int argc, char **argv) {
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
              symbol: '^' | '+' | '-' | '*' | '/' | '%' | \
                      \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \
+                     \"cons\" | \
                      \"add\" | \"sub\" | \"mul\" | \"div\" | \"min\" | \"max\" ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
