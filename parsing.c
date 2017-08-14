@@ -182,6 +182,15 @@ void lenv_put(lenv *e, lval *k, lval *v) {
   return;
 }
 
+void lval_print(lval *v);
+void lenv_print(lenv *e) {
+  for (int i = 0; i < e->count; i++) {
+    printf("%s = ", e->syms[i]);
+    lval_print(e->vals[i]);
+    printf("\n");
+  }
+}
+
 lval *lval_num(double n) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_NUM;
@@ -399,6 +408,11 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
 
 lval *lval_eval(lenv *e, lval *v) {
   if (v->type == LVAL_SYM) {
+    if (strcmp("print_env", v->sym) == 0) {
+      lenv_print(e);
+      lval_del(v);
+      return lval_sexpr();
+    }
     lval *x = lenv_get(e, v);
     lval_del(v);
     return x;
