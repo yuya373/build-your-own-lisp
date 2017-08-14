@@ -88,13 +88,18 @@ typedef lval *(*lbuiltin)(lenv *, lval *);
 /* struct size grow infinite when contain its own type directly */
 struct lval {
   int type;
+
   double num;
   char *err;
   char *sym;
-  int count;
-  lbuiltin fun;
+
+  lbuiltin builtin;
+  lenv *env;
+  lval *formals;
+  lval *body;
   /* pointer to (a list of (pointer to lval)) */
   struct lval **cell;
+  int count;
 };
 
 struct lenv {
@@ -126,9 +131,16 @@ lval *lval_copy(lval *v) {
 
   switch (v->type) {
   case LVAL_FUN:
-    x->fun = v->fun;
-    x->sym = (char *)malloc(strlen(v->sym) + 1);
-    strcpy(x->sym, v->sym);
+    if (v->builtin) {
+      x->builtin = v->builtin;
+      x->sym = (char *)malloc(strlen(v->sym) + 1);
+      strcpy(x->sym, v->sym);
+    } else {
+      x->builtin = NULL;
+      x->env = lenv_copy(v->env);
+      x->formals = lval_copy(v->formals);
+      x->body = lval_copy(v->body);
+    }
     break;
   case LVAL_NUM:
     x->num = v->num;
@@ -244,7 +256,7 @@ lval *lval_qexpr(void) {
 lval *lval_fun(lbuiltin func, char *name) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_FUN;
-  v->fun = func;
+  v->builtin = func;
   v->sym = (char *)malloc(strlen(name) + 1);
   strcpy(v->sym, name);
   return v;
@@ -253,6 +265,16 @@ lval *lval_fun(lbuiltin func, char *name) {
 lval *lval_quit(void) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_QUIT;
+  return v;
+}
+
+lval *lval_lambda(lval *formals, lval *body) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_FUN;
+  v->builtin = NULL;
+  v->env = lenv_new();
+  v->formals = formals;
+  v->body = body;
   return v;
 }
 
@@ -277,7 +299,13 @@ void lval_del(lval *v) {
     free(v->cell);
     break;
   case LVAL_FUN:
-    free(v->sym);
+    if (!v->builtin) {
+      lenv_del(v->env);
+      lval_del(v->formals);
+      lval_del(v->body);
+    } else {
+      free(v->sym);
+    }
     break;
   }
 
@@ -369,7 +397,15 @@ void lval_print(lval *v) {
     lval_expr_print(v, '{', '}');
     break;
   case LVAL_FUN:
-    printf("<function: %s>", v->sym);
+    if (!v->builtin) {
+      printf("(\\ ");
+      lval_print(v->formals);
+      putchar(' ');
+      lval_print(v->body);
+      putchar(')');
+    } else {
+      printf("<builtin function: %s>", v->sym);
+    }
     break;
   }
 }
@@ -411,7 +447,7 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
     return lval_err((char *)"first element is not a function");
   }
 
-  lval *result = f->fun(e, v);
+  lval *result = f->builtin(e, v);
   lval_del(f);
   return result;
 }
