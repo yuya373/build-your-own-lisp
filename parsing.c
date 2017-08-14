@@ -699,6 +699,22 @@ lval *builtin_def(lenv *e, lval *a) {
   return lval_sexpr();
 }
 
+lval *builtin_lambda(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"\\", a, 2);
+  LASSERT_TYPE((char *)"\\", a, 0, LVAL_QEXPR);
+  LASSERT_TYPE((char *)"\\", a, 1, LVAL_QEXPR);
+
+  for (int i = 0; i < a->cell[0]->count; i++) {
+    LASSERT_TYPE("\\", a->cell[0], i, LVAL_SYM);
+  }
+
+  lval *formals = lval_pop(a, 0);
+  lval *body = lval_pop(a, 0);
+
+  lval_del(a);
+  return lval_lambda(formals, body);
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func, name);
@@ -728,6 +744,7 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"max", builtin_max);
 
   lenv_add_builtin(e, (char *)"def", builtin_def);
+  lenv_add_builtin(e, (char *)"\\", builtin_lambda);
 }
 
 int main(int argc, char **argv) {
