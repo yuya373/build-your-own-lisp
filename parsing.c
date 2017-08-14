@@ -57,7 +57,8 @@ enum LISP_VALUE {
   LVAL_SYM,
   LVAL_SEXPR,
   LVAL_QEXPR,
-  LVAL_FUN
+  LVAL_FUN,
+  LVAL_QUIT,
 };
 
 char *ltype_name(int t) {
@@ -249,9 +250,16 @@ lval *lval_fun(lbuiltin func, char *name) {
   return v;
 }
 
+lval *lval_quit(void) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_QUIT;
+  return v;
+}
+
 void lval_del(lval *v) {
   switch (v->type) {
   case LVAL_NUM:
+  case LVAL_QUIT:
     break;
   case LVAL_ERR:
     free(v->err);
@@ -391,7 +399,9 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
   }
 
   if (v->count == 1) {
-    return lval_take(v, 0);
+    lval *_v = lval_take(v, 0);
+
+    return _v;
   }
 
   lval *f = lval_pop(v, 0);
@@ -412,6 +422,10 @@ lval *lval_eval(lenv *e, lval *v) {
       lenv_print(e);
       lval_del(v);
       return lval_sexpr();
+    }
+    if (strcmp("exit", v->sym) == 0) {
+      lval_del(v);
+      return lval_quit();
     }
     lval *x = lenv_get(e, v);
     lval_del(v);
@@ -712,6 +726,9 @@ int main(int argc, char **argv) {
       mpc_ast_t *ast = (mpc_ast_t *)r.output;
 
       lval *x = lval_eval(e, lval_read(ast));
+      if (x->type == LVAL_QUIT) {
+        break;
+      }
       lval_println(x);
       lval_del(x);
 
