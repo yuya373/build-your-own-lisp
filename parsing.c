@@ -103,6 +103,7 @@ struct lval {
 };
 
 struct lenv {
+  lenv *par;
   int count;
   char **syms;
   lval **vals;
@@ -110,6 +111,7 @@ struct lenv {
 
 lenv *lenv_new(void) {
   lenv *e = (lenv *)malloc(sizeof(lenv));
+  e->par = NULL;
   e->count = 0;
   e->syms = NULL;
   e->vals = NULL;
@@ -125,6 +127,7 @@ void lenv_del(lenv *e) {
   free(e);
 }
 
+lenv *lenv_copy(lenv *e);
 lval *lval_copy(lval *v) {
   lval *x = (lval *)malloc(sizeof(lval));
   x->type = v->type;
@@ -173,7 +176,11 @@ lval *lenv_get(lenv *e, lval *k) {
     }
   }
 
-  return lval_err((char *)"unbound symbol!");
+  if (e->par) {
+    return lenv_get(e->par, k);
+  } else {
+    return lval_err((char *)"unbound symbol!");
+  }
 }
 
 void lenv_put(lenv *e, lval *k, lval *v) {
@@ -193,6 +200,30 @@ void lenv_put(lenv *e, lval *k, lval *v) {
   e->syms[e->count - 1] = (char *)malloc(strlen(k->sym) + 1);
   strcpy(e->syms[e->count - 1], k->sym);
   return;
+}
+
+void lenv_def(lenv *e, lval *k, lval *v) {
+  while (e->par) {
+    e = e->par;
+  }
+  lenv_put(e, k, v);
+}
+
+lenv *lenv_copy(lenv *e) {
+  lenv *n = (lenv *)malloc(sizeof(lenv));
+  n->par = e->par;
+  n->count = e->count;
+  n->syms = (char **)malloc(sizeof(char *) * n->count);
+  n->vals = (lval **)malloc(sizeof(lval *) * n->count);
+
+  for (int i = 0; i < n->count; i++) {
+    n->vals[i] = lval_copy(e->vals[i]);
+
+    n->syms[i] = (char *)malloc(strlen(e->syms[i]) + 1);
+    strcpy(n->syms[i], e->syms[i]);
+  }
+
+  return n;
 }
 
 void lval_print(lval *v);
@@ -673,30 +704,41 @@ lval *builtin_div(lenv *e, lval *a) { return builtin_op(e, a, (char *)"/"); }
 lval *builtin_mod(lenv *e, lval *a) { return builtin_op(e, a, (char *)"%"); }
 lval *builtin_min(lenv *e, lval *a) { return builtin_op(e, a, (char *)"min"); }
 lval *builtin_max(lenv *e, lval *a) { return builtin_op(e, a, (char *)"max"); }
-lval *builtin_def(lenv *e, lval *a) {
-  LASSERT_TYPE((char *)"def", a, 0, LVAL_QEXPR);
+lval *builtin_var(lenv *e, lval *a, char *func) {
+  LASSERT_TYPE(func, a, 0, LVAL_QEXPR);
 
   lval *syms = a->cell[0];
 
   for (int i = 0; i < syms->count; i++) {
     /* printf("cell[%i]: %i\n", i, syms->cell[i]->type); */
-    LASSERT_TYPE((char *)"def", syms, i, LVAL_SYM);
+    LASSERT_TYPE(func, syms, i, LVAL_SYM);
   }
 
   /* printf("syms->count: %i\n", syms->count); */
   /* printf("a->count: %i\n", a->count); */
 
-  LASSERT_NUM((char *)"def", syms, (a->count - 1));
+  LASSERT_NUM(func, syms, (a->count - 1));
 
   for (int i = 0; i < syms->count; i++) {
-    /* i is syms, +1 to fetch corresponding value */
-    /* a->cell: [syms 1 2] */
-    /* syms->cell: [a b] */
-    lenv_put(e, syms->cell[i], a->cell[i + 1]);
+    if (strcmp(func, "def") == 0) {
+      lenv_def(e, syms->cell[i], a->cell[i + 1]);
+    }
+    if (strcmp(func, "=") == 0) {
+      /* i is syms, +1 to fetch corresponding value */
+      /* a->cell: [syms 1 2] */
+      /* syms->cell: [a b] */
+      lenv_put(e, syms->cell[i], a->cell[i + 1]);
+    }
   }
 
   lval_del(a);
   return lval_sexpr();
+}
+lval *builtin_def(lenv *e, lval *a) {
+  return builtin_var(e, a, (char *)"def");
+}
+lval *builtin_put(lenv *e, lval *a) {
+  return builtin_var(e, a, (char *)"=");
 }
 
 lval *builtin_lambda(lenv *e, lval *a) {
@@ -745,6 +787,7 @@ void lenv_add_builtins(lenv *e) {
 
   lenv_add_builtin(e, (char *)"def", builtin_def);
   lenv_add_builtin(e, (char *)"\\", builtin_lambda);
+  lenv_add_builtin(e, (char *)"=", builtin_put);
 }
 
 int main(int argc, char **argv) {
