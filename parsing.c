@@ -309,6 +309,44 @@ lval *lval_lambda(lval *formals, lval *body) {
   return v;
 }
 
+lval *lval_add(lval *v, lval *x);
+lval *builtin_eval(lenv *e, lval *a);
+lval *lval_pop(lval *v, int i);
+lval *lval_call(lenv *e, lval *f, lval *a) {
+  if (f->builtin) {
+    return f->builtin(e, a);
+  }
+
+  int given = a->count;
+  int total = f->formals->count;
+
+  while (a->count) {
+    if (f->formals->count == 0) {
+      lval_del(a);
+      return lval_err(
+          (char *)"Function passed too many arguments. Got %i, Expected %i.",
+          given, total);
+    }
+
+    lval *sym = lval_pop(f->formals, 0);
+    lval *val = lval_pop(a, 0);
+
+    lenv_put(f->env, sym, val);
+
+    lval_del(sym);
+    lval_del(val);
+  }
+
+  lval_del(a);
+
+  if (f->formals->count == 0) {
+    f->env->par = e;
+    return builtin_eval(f->env, lval_add(lval_sexpr(), lval_copy(f->body)));
+  } else {
+    return lval_copy(f);
+  }
+}
+
 void lval_del(lval *v) {
   switch (v->type) {
   case LVAL_NUM:
@@ -478,7 +516,7 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
     return lval_err((char *)"first element is not a function");
   }
 
-  lval *result = f->builtin(e, v);
+  lval *result = lval_call(e, f, v);
   lval_del(f);
   return result;
 }
@@ -734,12 +772,8 @@ lval *builtin_var(lenv *e, lval *a, char *func) {
   lval_del(a);
   return lval_sexpr();
 }
-lval *builtin_def(lenv *e, lval *a) {
-  return builtin_var(e, a, (char *)"def");
-}
-lval *builtin_put(lenv *e, lval *a) {
-  return builtin_var(e, a, (char *)"=");
-}
+lval *builtin_def(lenv *e, lval *a) { return builtin_var(e, a, (char *)"def"); }
+lval *builtin_put(lenv *e, lval *a) { return builtin_var(e, a, (char *)"="); }
 
 lval *builtin_lambda(lenv *e, lval *a) {
   LASSERT_NUM((char *)"\\", a, 2);
