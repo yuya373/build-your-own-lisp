@@ -673,6 +673,9 @@ lval *builtin_head(lenv *e, lval *a) {
   while (v->count > 1) {
     lval_del(lval_pop(v, 1));
   }
+  if (v->count) {
+    v = lval_take(v, 0);
+  }
   return v;
 }
 
