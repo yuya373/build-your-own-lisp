@@ -235,6 +235,38 @@ void lenv_print(lenv *e) {
   }
 }
 
+void lval_debug_print(lval *a) {
+  printf("type: %s\n", ltype_name(a->type));
+  if (a->type == LVAL_SYM) {
+    printf("sym: %s\n", a->sym);
+  }
+  if (a->type == LVAL_NUM) {
+    printf("num: %f\n", a->num);
+  }
+
+  /* if (a->env) { */
+  /*   printf("env:---------\n"); */
+  /*   lenv_print(a->env); */
+  /* } */
+
+  if (a->type == LVAL_FUN) {
+    if (a->builtin) {
+      printf("builtin function\n");
+    } else {
+      printf("formals:--------\n");
+      lval_debug_print(a->formals);
+      printf("body:--------\n");
+      lval_debug_print(a->body);
+    }
+  }
+
+  printf("number of children: %i\n", a->count);
+  for (int i = 0; i < a->count; i++) {
+    printf("\nChildren: [%i/%i]-----------------------\n", i, a->count);
+    lval_debug_print(a->cell[i]);
+  }
+}
+
 lval *lval_num(double n) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_NUM;
@@ -673,9 +705,17 @@ lval *builtin_head(lenv *e, lval *a) {
   while (v->count > 1) {
     lval_del(lval_pop(v, 1));
   }
+
+  return v;
+}
+
+lval *builtin_fst(lenv *e, lval *a) {
+  lval *v = builtin_head(e, a);
+
   if (v->count) {
     v = lval_take(v, 0);
   }
+
   return v;
 }
 
@@ -807,6 +847,22 @@ lval *builtin_var(lenv *e, lval *a, char *func) {
 }
 lval *builtin_def(lenv *e, lval *a) { return builtin_var(e, a, (char *)"def"); }
 lval *builtin_put(lenv *e, lval *a) { return builtin_var(e, a, (char *)"="); }
+lval *builtin_fun(lenv *e, lval *a) {
+  /* lval_debug_print(a); */
+  /* fun {a x y} {+ x y} */
+  lval *args = lval_pop(a, 0);
+  lval *name = lval_pop(args, 0);
+
+  lval *body = lval_pop(a, 0);
+  lval *lambda = lval_lambda(args, body);
+
+  lenv_def(e, name, lambda);
+
+  lval_del(name);
+  lval_del(lambda);
+
+  return lval_sexpr();
+}
 
 lval *builtin_lambda(lenv *e, lval *a) {
   LASSERT_NUM((char *)"\\", a, 2);
@@ -855,6 +911,8 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"def", builtin_def);
   lenv_add_builtin(e, (char *)"\\", builtin_lambda);
   lenv_add_builtin(e, (char *)"=", builtin_put);
+  lenv_add_builtin(e, (char *)"fst", builtin_fst);
+  lenv_add_builtin(e, (char *)"fun", builtin_fun);
 }
 
 int main(int argc, char **argv) {
