@@ -998,6 +998,22 @@ lval *builtin_or(lenv *e, lval *a) {
   return ret;
 }
 
+lval *builtin_and(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"and", a, 2);
+  LASSERT_TYPE((char *)"and", a, 0, LVAL_NUM);
+  LASSERT_TYPE((char *)"and", a, 1, LVAL_NUM);
+  lval *ret;
+
+  if (a->cell[0]->num && a->cell[1]->num) {
+    ret = lval_num(a->cell[1]->num);
+  } else {
+    ret = lval_num(0);
+  }
+
+  lval_del(a);
+  return ret;
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func, name);
@@ -1042,6 +1058,8 @@ void lenv_add_builtins(lenv *e) {
 
   lenv_add_builtin(e, (char *)"or", builtin_or);
   lenv_add_builtin(e, (char *)"||", builtin_or);
+  lenv_add_builtin(e, (char *)"and", builtin_and);
+  lenv_add_builtin(e, (char *)"&&", builtin_and);
 }
 
 int main(int argc, char **argv) {
