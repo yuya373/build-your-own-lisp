@@ -958,6 +958,30 @@ lval *builtin_cmp(lenv *e, lval *a, char *op) {
 lval *builtin_eq(lenv *e, lval *a) { return builtin_cmp(e, a, (char *)"=="); }
 lval *builtin_ne(lenv *e, lval *a) { return builtin_cmp(e, a, (char *)"!="); }
 
+lval *builtin_if(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"if", a, 3);
+  LASSERT_TYPE((char *)"if", a, 0, LVAL_NUM);
+  LASSERT_TYPE((char *)"if", a, 1, LVAL_QEXPR);
+  LASSERT_TYPE((char *)"if", a, 2, LVAL_QEXPR);
+
+  lval *ret;
+
+  if (a->cell[0]->num) {
+    a->cell[1]->type = LVAL_SEXPR;
+    /* this cause segmentation fault, using if more than once */
+    /* ret = lval_eval(e, a->cell[1]); */
+    ret = lval_eval(e, lval_pop(a, 1));
+  } else {
+    a->cell[2]->type = LVAL_SEXPR;
+    /* this cause segmentation fault, using if more than once */
+    /* ret = lval_eval(e, a->cell[2]); */
+    ret = lval_eval(e, lval_pop(a, 2));
+  }
+
+  lval_del(a);
+  return ret;
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func, name);
@@ -991,6 +1015,14 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"=", builtin_put);
   lenv_add_builtin(e, (char *)"fst", builtin_fst);
   lenv_add_builtin(e, (char *)"fun", builtin_fun);
+
+  lenv_add_builtin(e, (char *)"if", builtin_if);
+  lenv_add_builtin(e, (char *)"==", builtin_eq);
+  lenv_add_builtin(e, (char *)"!=", builtin_ne);
+  lenv_add_builtin(e, (char *)">", builtin_gt);
+  lenv_add_builtin(e, (char *)"<", builtin_lt);
+  lenv_add_builtin(e, (char *)">=", builtin_gteq);
+  lenv_add_builtin(e, (char *)"<=", builtin_lteq);
 }
 
 int main(int argc, char **argv) {
