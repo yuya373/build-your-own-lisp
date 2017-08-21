@@ -982,6 +982,22 @@ lval *builtin_if(lenv *e, lval *a) {
   return ret;
 }
 
+lval *builtin_or(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"or", a, 2);
+  LASSERT_TYPE((char *)"or", a, 0, LVAL_NUM);
+  LASSERT_TYPE((char *)"or", a, 1, LVAL_NUM);
+  lval *ret;
+
+  if (a->cell[0]->num) {
+    ret = lval_num(a->cell[0]->num);
+  } else {
+    ret = lval_num(a->cell[1]->num);
+  }
+
+  lval_del(a);
+  return ret;
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func, name);
@@ -1023,6 +1039,9 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"<", builtin_lt);
   lenv_add_builtin(e, (char *)">=", builtin_gteq);
   lenv_add_builtin(e, (char *)"<=", builtin_lteq);
+
+  lenv_add_builtin(e, (char *)"or", builtin_or);
+  lenv_add_builtin(e, (char *)"||", builtin_or);
 }
 
 int main(int argc, char **argv) {
@@ -1035,7 +1054,7 @@ int main(int argc, char **argv) {
   /* this is part of a C string we need to put two backslashes to represent a
    * single backslash character in the input. */
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
-             symbol : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ; \
+             symbol : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ | \"||\" ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
              expr: <number> | <symbol> | <sexpr> | <qexpr> ; \
