@@ -274,6 +274,9 @@ lval *lval_num(double n) {
   return v;
 }
 
+lval *lval_true(void) { return lval_num(1); }
+lval *lval_false(void) { return lval_num(0); }
+
 lval *lval_err(char *fmt, ...) {
   lval *v = (lval *)malloc(sizeof(lval));
   v->type = LVAL_ERR;
@@ -1038,6 +1041,18 @@ void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
 }
 
 void lenv_add_builtins(lenv *e) {
+  lval *true_sym = lval_sym((char *)"true");
+  lval *true_val = lval_true();
+  lenv_put(e, true_sym, true_val);
+  lval_del(true_sym);
+  lval_del(true_val);
+
+  lval *false_sym = lval_sym((char *)"false");
+  lval *false_val = lval_false();
+  lenv_put(e, false_sym, false_val);
+  lval_del(false_sym);
+  lval_del(false_val);
+
   lenv_add_builtin(e, (char *)"list", builtin_list);
   lenv_add_builtin(e, (char *)"head", builtin_head);
   lenv_add_builtin(e, (char *)"tail", builtin_tail);
