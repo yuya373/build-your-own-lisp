@@ -50,6 +50,14 @@ struct lval;
 struct lenv;
 typedef struct lval lval;
 typedef struct lenv lenv;
+mpc_parser_t *Number;
+mpc_parser_t *Symbol;
+mpc_parser_t *Sexpr;
+mpc_parser_t *Qexpr;
+mpc_parser_t *Expr;
+mpc_parser_t *Lispy;
+mpc_parser_t *String;
+mpc_parser_t *Comment;
 
 enum LISP_VALUE {
   LVAL_NUM,
@@ -1116,6 +1124,41 @@ lval *builtin_not(lenv *e, lval *a) {
 
   lval_del(a);
   return ret;
+}
+
+lval *builtin_load(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"load", a, 1);
+  LASSERT_TYPE((char *)"load", a, 0, LVAL_STR);
+
+  mpc_result_t r;
+
+  if (mpc_parse_contents(a->cell[0]->str, Lispy, &r)) {
+    lval *expr = lval_read((mpc_ast_t *)r.output);
+    mpc_ast_delete((mpc_ast_t *)r.output);
+
+    while (expr->count) {
+      lval *x = lval_eval(e, lval_pop(expr, 0));
+
+      if (x->type == LVAL_ERR) {
+        lval_println(x);
+      }
+      lval_del(x);
+    }
+
+    lval_del(expr);
+    lval_del(a);
+
+    return lval_sexpr();
+  } else {
+    char *err_msg = mpc_err_string(r.error);
+    mpc_err_delete(r.error);
+
+    lval *err = lval_err((char *)"Could not load Liborary %s", err_msg);
+    free(err_msg);
+    lval_del(a);
+
+    return err;
+  }
 }
 
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
