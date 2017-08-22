@@ -499,7 +499,20 @@ lval *lval_add(lval *v, lval *x) {
   return v;
 }
 
+lval *lval_read_str(mpc_ast_t *t) {
+  t->contents[strlen(t->contents) - 1] = '\0';
+  char *unescaped = (char *)malloc(strlen(t->contents + 1) + 1);
+  strcpy(unescaped, t->contents + 1);
+  unescaped = (char *)mpcf_unescape(unescaped);
+  lval *str = lval_str(unescaped);
+  free(unescaped);
+  return str;
+}
+
 lval *lval_read(mpc_ast_t *t) {
+  if (strstr(t->tag, "string")) {
+    return lval_read_str(t);
+  }
   if (strstr(t->tag, "number")) {
     return lval_read_num(t);
   }
@@ -1171,16 +1184,18 @@ int main(int argc, char **argv) {
   mpc_parser_t *Qexpr = mpc_new("qexpr");
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
+  mpc_parser_t *String = mpc_new("string");
   /* this is part of a C string we need to put two backslashes to represent a
    * single backslash character in the input. */
   mpca_lang(MPCA_LANG_DEFAULT, "number : /-?[0-9]+[\\.]?[0-9]*/ ; \
              symbol : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ | \"||\" ; \
+             string  : /\"(\\\\.|[^\"])*\"/ ; \
              sexpr: '(' <expr>* ')' ; \
              qexpr: '{' <expr>* '}' ; \
-             expr: <number> | <symbol> | <sexpr> | <qexpr> ; \
+             expr: <number> | <symbol> | <sexpr> | <qexpr> | <string> ; \
              lispy: /^/ <expr>* /$/ ; \
             ",
-            Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
+            Number, Symbol, String, Sexpr, Qexpr, Expr, Lispy);
 
   puts("Lispy Version 0.0.0.0.1");
   puts("Press Ctrl+c to Exit\n");
@@ -1215,6 +1230,6 @@ int main(int argc, char **argv) {
 
   lenv_del(e);
 
-  mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
+  mpc_cleanup(6, Number, Symbol, String, Sexpr, Qexpr, Expr, Lispy);
   return 0;
 }
