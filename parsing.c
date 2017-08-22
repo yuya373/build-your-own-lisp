@@ -60,6 +60,7 @@ enum LISP_VALUE {
   LVAL_FUN,
   LVAL_QUIT,
   LVAL_BOOL,
+  LVAL_STR,
 };
 
 char *ltype_name(int t) {
@@ -78,6 +79,8 @@ char *ltype_name(int t) {
     return (char *)"Function";
   case LVAL_BOOL:
     return (char *)"Boolean";
+  case LVAL_STR:
+    return (char *)"String";
   default:
     return (char *)"Unknown";
   }
@@ -95,6 +98,7 @@ struct lval {
   double num;
   char *err;
   char *sym;
+  char *str;
 
   lbuiltin builtin;
   lenv *env;
@@ -169,6 +173,10 @@ lval *lval_copy(lval *v) {
     for (int i = 0; i < x->count; i++) {
       x->cell[i] = lval_copy(v->cell[i]);
     }
+    break;
+  case LVAL_STR:
+    x->str = (char *)malloc(strlen(v->str) + 1);
+    strcpy(x->str, v->str);
     break;
   }
   return x;
@@ -274,6 +282,14 @@ void lval_debug_print(lval *a) {
     printf("\nChildren: [%i/%i]-----------------------\n", i, a->count);
     lval_debug_print(a->cell[i]);
   }
+}
+
+lval *lval_str(char *s) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_STR;
+  v->str = (char *)malloc(strlen(s) + 1);
+  strcpy(v->str, s);
+  return v;
 }
 
 lval *lval_num(double n) {
@@ -461,6 +477,9 @@ void lval_del(lval *v) {
       free(v->sym);
     }
     break;
+  case LVAL_STR:
+    free(v->str);
+    break;
   }
 
   free(v);
@@ -533,6 +552,14 @@ void lval_expr_print(lval *v, char open, char close) {
   putchar(close);
 }
 
+void lval_print_str(lval *v) {
+  char *escaped = (char *)malloc(strlen(v->str) + 1);
+  strcpy(escaped, v->str);
+  escaped = (char *)mpcf_escape(escaped);
+  printf("\"%s\"", escaped);
+  free(escaped);
+}
+
 void lval_print(lval *v) {
   switch (v->type) {
   case LVAL_NUM:
@@ -567,6 +594,9 @@ void lval_print(lval *v) {
     } else {
       printf("<builtin function: %s>", v->sym);
     }
+    break;
+  case LVAL_STR:
+    lval_print_str(v);
     break;
   }
 }
@@ -967,6 +997,8 @@ int lval_eq(lval *x, lval *y) {
       }
     }
     return 1;
+  case LVAL_STR:
+    return strcmp(x->str, y->str) == 0;
   }
   return 0;
 }
