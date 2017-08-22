@@ -59,6 +59,7 @@ enum LISP_VALUE {
   LVAL_QEXPR,
   LVAL_FUN,
   LVAL_QUIT,
+  LVAL_BOOL,
 };
 
 char *ltype_name(int t) {
@@ -75,6 +76,8 @@ char *ltype_name(int t) {
     return (char *)"Q-Expression";
   case LVAL_FUN:
     return (char *)"Function";
+  case LVAL_BOOL:
+    return (char *)"Boolean";
   default:
     return (char *)"Unknown";
   }
@@ -144,6 +147,9 @@ lval *lval_copy(lval *v) {
       x->formals = lval_copy(v->formals);
       x->body = lval_copy(v->body);
     }
+    break;
+  case LVAL_BOOL:
+    x->num = v->num;
     break;
   case LVAL_NUM:
     x->num = v->num;
@@ -243,6 +249,9 @@ void lval_debug_print(lval *a) {
   if (a->type == LVAL_NUM) {
     printf("num: %f\n", a->num);
   }
+  if (a->type == LVAL_BOOL) {
+    printf("bool: %s\n", a->num ? "true" : "false");
+  }
 
   /* if (a->env) { */
   /*   printf("env:---------\n"); */
@@ -274,8 +283,19 @@ lval *lval_num(double n) {
   return v;
 }
 
-lval *lval_true(void) { return lval_num(1); }
-lval *lval_false(void) { return lval_num(0); }
+lval *lval_true(void) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_BOOL;
+  v->num = 1;
+  return v;
+}
+
+lval *lval_false(void) {
+  lval *v = (lval *)malloc(sizeof(lval));
+  v->type = LVAL_BOOL;
+  v->num = 0;
+  return v;
+}
 
 lval *lval_err(char *fmt, ...) {
   lval *v = (lval *)malloc(sizeof(lval));
@@ -517,6 +537,13 @@ void lval_print(lval *v) {
   switch (v->type) {
   case LVAL_NUM:
     printf("%f", v->num);
+    break;
+  case LVAL_BOOL:
+    if (v->num) {
+      printf("true");
+    } else {
+      printf("false");
+    }
     break;
   case LVAL_ERR:
     printf("Error: %s", v->err);
@@ -917,6 +944,7 @@ int lval_eq(lval *x, lval *y) {
   }
   switch (x->type) {
   case LVAL_NUM:
+  case LVAL_BOOL:
     return x->num == y->num;
   case LVAL_ERR:
     return strcmp(x->err, y->err) == 0;
@@ -946,16 +974,24 @@ int lval_eq(lval *x, lval *y) {
 lval *builtin_cmp(lenv *e, lval *a, char *op) {
   LASSERT_NUM(op, a, 2);
 
-  int r;
+  lval *r;
   if (strcmp(op, "==") == 0) {
-    r = lval_eq(a->cell[0], a->cell[1]);
+    if (lval_eq(a->cell[0], a->cell[1])) {
+      r = lval_true();
+    } else {
+      r = lval_false();
+    }
   }
   if (strcmp(op, "!=") == 0) {
-    r = !lval_eq(a->cell[0], a->cell[1]);
+    if (!lval_eq(a->cell[0], a->cell[1])) {
+      r = lval_true();
+    } else {
+      r = lval_false();
+    }
   }
 
   lval_del(a);
-  return lval_num(r);
+  return r;
 }
 
 lval *builtin_eq(lenv *e, lval *a) { return builtin_cmp(e, a, (char *)"=="); }
@@ -963,7 +999,7 @@ lval *builtin_ne(lenv *e, lval *a) { return builtin_cmp(e, a, (char *)"!="); }
 
 lval *builtin_if(lenv *e, lval *a) {
   LASSERT_NUM((char *)"if", a, 3);
-  LASSERT_TYPE((char *)"if", a, 0, LVAL_NUM);
+  /* LASSERT_TYPE((char *)"if", a, 0, LVAL_NUM); */
   LASSERT_TYPE((char *)"if", a, 1, LVAL_QEXPR);
   LASSERT_TYPE((char *)"if", a, 2, LVAL_QEXPR);
 
@@ -987,14 +1023,16 @@ lval *builtin_if(lenv *e, lval *a) {
 
 lval *builtin_or(lenv *e, lval *a) {
   LASSERT_NUM((char *)"or", a, 2);
-  LASSERT_TYPE((char *)"or", a, 0, LVAL_NUM);
-  LASSERT_TYPE((char *)"or", a, 1, LVAL_NUM);
+  LASSERT_TYPE((char *)"or", a, 0, LVAL_BOOL);
+  LASSERT_TYPE((char *)"or", a, 1, LVAL_BOOL);
   lval *ret;
 
   if (a->cell[0]->num) {
-    ret = lval_num(a->cell[0]->num);
+    ret = lval_copy(a->cell[0]);
+  } else if (a->cell[1]->num) {
+    ret = lval_copy(a->cell[1]);
   } else {
-    ret = lval_num(a->cell[1]->num);
+    ret = lval_false();
   }
 
   lval_del(a);
@@ -1003,8 +1041,8 @@ lval *builtin_or(lenv *e, lval *a) {
 
 lval *builtin_and(lenv *e, lval *a) {
   LASSERT_NUM((char *)"and", a, 2);
-  LASSERT_TYPE((char *)"and", a, 0, LVAL_NUM);
-  LASSERT_TYPE((char *)"and", a, 1, LVAL_NUM);
+  LASSERT_TYPE((char *)"and", a, 0, LVAL_BOOL);
+  LASSERT_TYPE((char *)"and", a, 1, LVAL_BOOL);
   lval *ret;
 
   if (a->cell[0]->num && a->cell[1]->num) {
@@ -1019,7 +1057,7 @@ lval *builtin_and(lenv *e, lval *a) {
 
 lval *builtin_not(lenv *e, lval *a) {
   LASSERT_NUM((char *)"not", a, 1);
-  LASSERT_TYPE((char *)"not", a, 0, LVAL_NUM);
+  LASSERT_TYPE((char *)"not", a, 0, LVAL_BOOL);
 
   lval *ret;
   if (a->cell[0]->num) {
