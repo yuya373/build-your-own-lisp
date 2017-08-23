@@ -1,0 +1,2 @@
+;; -*- mode: lisp -*-
+(print (if (+ 1 2) {"Hello Lispy"} {"false"}))
