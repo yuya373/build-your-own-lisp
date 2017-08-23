@@ -1251,29 +1251,40 @@ int main(int argc, char **argv) {
   lenv *e = lenv_new();
   lenv_add_builtins(e);
 
-  /* not 0, infinit loop */
-  while (1) {
-    mpc_result_t r;
-    char *input = readline("lispy> ");
-    if (mpc_parse("<stdin>", input, Lispy, &r)) {
-      mpc_ast_t *ast = (mpc_ast_t *)r.output;
-
-      lval *x = lval_eval(e, lval_read(ast));
-      if (x->type == LVAL_QUIT) {
-        break;
+  if (argc >= 2) {
+    for (int i = 1; i < argc; i++) {
+      lval *args = lval_add(lval_sexpr(), lval_str(argv[i]));
+      lval *x = builtin_load(e, args);
+      if (x->type == LVAL_ERR) {
+        lval_println(x);
       }
-      lval_println(x);
       lval_del(x);
-
-      mpc_ast_delete((mpc_ast_t *)r.output);
-    } else {
-      mpc_err_print(r.error);
-      mpc_err_delete(r.error);
     }
-    add_history(input);
+  } else {
+    /* not 0, infinit loop */
+    while (1) {
+      mpc_result_t r;
+      char *input = readline("lispy> ");
+      if (mpc_parse("<stdin>", input, Lispy, &r)) {
+        mpc_ast_t *ast = (mpc_ast_t *)r.output;
 
-    /* from stdlib.h */
-    free(input);
+        lval *x = lval_eval(e, lval_read(ast));
+        if (x->type == LVAL_QUIT) {
+          break;
+        }
+        lval_println(x);
+        lval_del(x);
+
+        mpc_ast_delete((mpc_ast_t *)r.output);
+      } else {
+        mpc_err_print(r.error);
+        mpc_err_delete(r.error);
+      }
+      add_history(input);
+
+      /* from stdlib.h */
+      free(input);
+    }
   }
 
   lenv_del(e);
