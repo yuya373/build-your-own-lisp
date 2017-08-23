@@ -2,3 +2,6 @@
 (error "An Error")
 (print (if (+ 1 2) {"Hello Lispy"} {"false"}))
 (print (cons 2 (list 2)))
+(print (join "hello" " " "lispy"))
+(print (join "join" " " "strings"))
+(print (join {2} {3} {4}))

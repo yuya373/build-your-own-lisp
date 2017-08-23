@@ -837,17 +837,33 @@ lval *lval_join(lval *x, lval *y) {
 }
 
 lval *builtin_join(lenv *e, lval *a) {
-  for (int i = 0; i < a->count; i++) {
-    LASSERT_TYPE((char *)"join", a, i, LVAL_QEXPR);
-  }
+  if (a->cell[0]->type == LVAL_STR) {
+    for (int i = 0; i < a->count; i++) {
+      LASSERT_TYPE((char *)"join", a, i, LVAL_STR)
+    }
 
-  lval *x = lval_pop(a, 0);
-  while (a->count) {
-    x = lval_join(x, lval_pop(a, 0));
-  }
+    lval *x = lval_pop(a, 0);
+    while (a->count) {
+      lval *y = lval_pop(a, 0);
+      x->str = (char *)realloc(x->str, (sizeof(char *) * strlen(x->str) +
+                                        sizeof(char *) * strlen(y->str) + 1));
+      x->str = strncat(x->str, y->str, sizeof(char *) * strlen(y->str));
+    }
 
-  lval_del(a);
-  return x;
+    lval_del(a);
+    return x;
+  } else {
+    for (int i = 0; i < a->count; i++) {
+      LASSERT_TYPE((char *)"join", a, i, LVAL_QEXPR);
+    }
+    lval *x = lval_pop(a, 0);
+    while (a->count) {
+      x = lval_join(x, lval_pop(a, 0));
+    }
+
+    lval_del(a);
+    return x;
+  }
 }
 
 lval *builtin_cons(lenv *e, lval *a) {
