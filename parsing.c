@@ -1172,6 +1172,15 @@ lval *builtin_print(lenv *e, lval *a) {
   return lval_sexpr();
 }
 
+lval *builtin_error(lenv *e, lval *a) {
+  LASSERT_NUM((char *)"error", a, 1);
+  LASSERT_TYPE((char *)"error", a, 0, LVAL_STR);
+
+  lval *err = lval_err(a->cell[0]->str);
+  lval_del(a);
+  return err;
+}
+
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func) {
   lval *k = lval_sym(name);
   lval *v = lval_fun(func, name);
@@ -1234,6 +1243,8 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"!", builtin_not);
 
   lenv_add_builtin(e, (char *)"print", builtin_print);
+  lenv_add_builtin(e, (char *)"error", builtin_error);
+  lenv_add_builtin(e, (char *)"load", builtin_load);
 }
 
 int main(int argc, char **argv) {

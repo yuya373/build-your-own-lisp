@@ -1,2 +1,3 @@
 ;; -*- mode: lisp -*-
+(error "An Error")
 (print (if (+ 1 2) {"Hello Lispy"} {"false"}))
