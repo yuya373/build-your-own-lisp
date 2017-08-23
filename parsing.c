@@ -850,7 +850,7 @@ lval *builtin_join(lenv *e, lval *a) {
   return x;
 }
 
-lval *builtin_cons(lval *a) {
+lval *builtin_cons(lenv *e, lval *a) {
   for (int i = 1; i < a->count; i++) {
     LASSERT_TYPE((char *)"cons", a, i, LVAL_QEXPR);
   }
@@ -1207,6 +1207,7 @@ void lenv_add_builtins(lenv *e) {
   lenv_add_builtin(e, (char *)"tail", builtin_tail);
   lenv_add_builtin(e, (char *)"eval", builtin_eval);
   lenv_add_builtin(e, (char *)"join", builtin_join);
+  lenv_add_builtin(e, (char *)"cons", builtin_cons);
 
   lenv_add_builtin(e, (char *)"+", builtin_add);
   lenv_add_builtin(e, (char *)"add", builtin_add);
