@@ -5,3 +5,6 @@
 (print (join "hello" " " "lispy"))
 (print (join "join" " " "strings"))
 (print (join {2} {3} {4}))
+(print (head "hello lispy"))
+(print (head ""))
+(print (head { 1 2 3 4 }))

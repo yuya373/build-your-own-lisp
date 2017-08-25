@@ -782,6 +782,20 @@ lval *builtin_op(lenv *e, lval *a, char *op) {
 
 lval *builtin_head(lenv *e, lval *a) {
   LASSERT_NUM((char *)"head", a, 1);
+
+  if (a->cell[0]->type == LVAL_STR) {
+    lval *v = lval_pop(a, 0);
+    int len = strlen(v->str);
+    if (len <= 1) {
+      lval_del(a);
+      return v;
+    } else {
+      v->str[1] = '\0';
+      lval_del(a);
+      return v;
+    }
+  }
+
   LASSERT_TYPE((char *)"head", a, 0, LVAL_QEXPR);
   LASSERT_NOT_EMPTY((char *)"head", a, 0);
 
