@@ -8,3 +8,6 @@
 (print (head "hello lispy"))
 (print (head ""))
 (print (head { 1 2 3 4 }))
+(print (tail "hello lispy"))
+(print (tail ""))
+(print (tail { 1 2 3 4 }))

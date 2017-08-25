@@ -818,8 +818,23 @@ lval *builtin_fst(lenv *e, lval *a) {
 }
 
 lval *builtin_tail(lenv *e, lval *a) {
-  LASSERT_TYPE((char *)"tail", a, 0, LVAL_QEXPR);
   LASSERT_NUM((char *)"tail", a, 1);
+
+  if (a->cell[0]->type == LVAL_STR) {
+    lval *v = lval_pop(a, 0);
+    int len = strlen(v->str);
+
+    if (len <= 1) {
+      /* lval_del(v); */
+      return v;
+    }
+
+    strncpy(v->str, v->str + 1, len - 1);
+    /* lval_del(v); */
+    return v;
+  }
+
+  LASSERT_TYPE((char *)"tail", a, 0, LVAL_QEXPR);
   LASSERT_NOT_EMPTY((char *)"tail", a, 0);
 
   lval *v = lval_take(a, 0);
