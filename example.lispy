@@ -1,13 +1,34 @@
 ;; -*- mode: lisp -*-
-(error "An Error")
-(print (if (+ 1 2) {"Hello Lispy"} {"false"}))
-(print (cons 2 (list 2)))
-(print (join "hello" " " "lispy"))
-(print (join "join" " " "strings"))
-(print (join {2} {3} {4}))
-(print (head "hello lispy"))
-(print (head ""))
-(print (head { 1 2 3 4 }))
-(print (tail "hello lispy"))
-(print (tail ""))
-(print (tail { 1 2 3 4 }))
+;; (error "An Error")
+;; (print (if (+ 1 2) {"Hello Lispy"} {"false"}))
+;; (print (cons 2 (list 2)))
+;; (print (join "hello" " " "lispy"))
+;; (print (join "join" " " "strings"))
+;; (print (join {2} {3} {4}))
+;; (print (head "hello lispy"))
+;; (print (head ""))
+;; (print (head { 1 2 3 4 }))
+;; (print (tail "hello lispy"))
+;; (print (tail ""))
+;; (print (tail { 1 2 3 4 }))
+;; def fib(x)
+;; if x < 3 then
+;; 1
+;; else
+;; fib(x-1)+fib(x-2)
+(fun {fib x} { if (< x 3) {1} {(+ (fib (- x 1)) (fib (- x 2)))} })
+;; (print (fib 30))
+;; $ time ./parsing example.lispy
+;; Lispy Version 0.0.0.0.1
+;; Press Ctrl+c to Exit
+
+;; 832040.000000
+;; ./parsing example.lispy  8.73s user 0.02s system 99% cpu 8.761 total
+
+;; (print (fib 35))
+;; $ time ./parsing example.lispy
+;; Lispy Version 0.0.0.0.1
+;; Press Ctrl+c to Exit
+
+;; 9227465.000000
+;; ./parsing example.lispy  107.00s user 0.29s system 99% cpu 1:47.29 total
